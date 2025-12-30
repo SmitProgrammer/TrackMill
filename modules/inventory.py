@@ -1,5 +1,5 @@
 from datetime import datetime
-from PySide6.QtWidgets import QWidget, QDialog, QTableWidgetItem, QHeaderView, QMessageBox
+from PySide6.QtWidgets import QWidget, QDialog, QTableWidgetItem, QHeaderView, QMessageBox, QAbstractItemView
 from PySide6.QtCore import Qt
 
 from ui_compiled.inventory_ui import Ui_InventoryWidget
@@ -112,40 +112,41 @@ class InventoryWidget(QWidget):
         self.load_inventory()
 
     def setup_table(self):
-        self.ui.tableMaterials.setColumnWidth(0, 100)
-        self.ui.tableMaterials.setColumnWidth(1, 180)
-        self.ui.tableMaterials.setColumnWidth(2, 120)
-        self.ui.tableMaterials.setColumnWidth(3, 100)
-        self.ui.tableMaterials.setColumnWidth(4, 80)
-        self.ui.tableMaterials.setColumnWidth(5, 100)
-        self.ui.tableMaterials.setColumnWidth(6, 150)
-        self.ui.tableMaterials.setColumnWidth(7, 100)
+        self.ui.tableInventory.setColumnWidth(0, 100)
+        self.ui.tableInventory.setColumnWidth(1, 180)
+        self.ui.tableInventory.setColumnWidth(2, 120)
+        self.ui.tableInventory.setColumnWidth(3, 100)
+        self.ui.tableInventory.setColumnWidth(4, 80)
+        self.ui.tableInventory.setColumnWidth(5, 100)
+        self.ui.tableInventory.setColumnWidth(6, 150)
+        self.ui.tableInventory.setColumnWidth(7, 100)
 
-        header = self.ui.tableMaterials.horizontalHeader()
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header = self.ui.tableInventory.horizontalHeader()
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
 
-        self.ui.tableMaterials.setSelectionBehavior(QTableWidgetItem.SelectRows)
-        self.ui.tableMaterials.setSelectionMode(QTableWidgetItem.SingleSelection)
+        self.ui.tableInventory.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.ui.tableInventory.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
     def setup_connections(self):
-        self.ui.btnAdd.clicked.connect(self.add_material)
-        self.ui.btnEdit.clicked.connect(self.edit_material)
-        self.ui.btnDelete.clicked.connect(self.delete_material)
-        self.ui.btnUpdateStock.clicked.connect(self.update_stock)
+        self.ui.btnAddMaterial.clicked.connect(self.add_material)
+        self.ui.btnEditMaterial.clicked.connect(self.edit_material)
+        self.ui.btnDeleteMaterial.clicked.connect(self.delete_material)
+        self.ui.btnAddStock.clicked.connect(self.update_stock)
         self.ui.btnRefresh.clicked.connect(self.load_inventory)
-        self.ui.txtSearch.textChanged.connect(self.search_materials)
-        self.ui.tableMaterials.itemSelectionChanged.connect(self.on_selection_changed)
+        if hasattr(self.ui, 'txtSearch'):
+            self.ui.txtSearch.textChanged.connect(self.search_materials)
+        self.ui.tableInventory.itemSelectionChanged.connect(self.on_selection_changed)
 
     def on_selection_changed(self):
-        selected_items = self.ui.tableMaterials.selectedItems()
+        selected_items = self.ui.tableInventory.selectedItems()
         if selected_items:
             row = selected_items[0].row()
-            self.current_material_id = self.ui.tableMaterials.item(row, 0).text()
+            self.current_material_id = self.ui.tableInventory.item(row, 0).text()
         else:
             self.current_material_id = None
 
     def load_inventory(self):
-        self.ui.tableMaterials.setRowCount(0)
+        self.ui.tableInventory.setRowCount(0)
 
         materials = sqlite_db.fetch_all("SELECT * FROM inventory ORDER BY material_name")
 
@@ -155,30 +156,30 @@ class InventoryWidget(QWidget):
             if material['current_stock'] <= material['min_stock']:
                 low_stock_count += 1
 
-        self.ui.lblTotalMaterials.setText(f"Total: {len(materials)} materials")
+        self.ui.lblLowStockAlert.setText(f"Total: {len(materials)} materials")
         if low_stock_count > 0:
-            self.ui.lblLowStock.setText(f"Low Stock: {low_stock_count} items")
+            pass  # self.ui.lblLowStock.setText(f"Low Stock: {low_stock_count} items")
             self.ui.lblLowStock.setStyleSheet("color: #f44336; font-weight: bold;")
         else:
-            self.ui.lblLowStock.setText("All stock levels good")
+            pass  # self.ui.lblLowStock.setText("All stock levels good")
             self.ui.lblLowStock.setStyleSheet("color: #4CAF50; font-weight: bold;")
 
     def add_material_to_table(self, material):
-        row = self.ui.tableMaterials.rowCount()
-        self.ui.tableMaterials.insertRow(row)
+        row = self.ui.tableInventory.rowCount()
+        self.ui.tableInventory.insertRow(row)
 
-        self.ui.tableMaterials.setItem(row, 0, QTableWidgetItem(material['id']))
-        self.ui.tableMaterials.setItem(row, 1, QTableWidgetItem(material['material_name']))
-        self.ui.tableMaterials.setItem(row, 2, QTableWidgetItem(material['material_type'] or ''))
+        self.ui.tableInventory.setItem(row, 0, QTableWidgetItem(material['id']))
+        self.ui.tableInventory.setItem(row, 1, QTableWidgetItem(material['material_name']))
+        self.ui.tableInventory.setItem(row, 2, QTableWidgetItem(material['material_type'] or ''))
 
         stock_item = QTableWidgetItem(f"{material['current_stock']:.2f}")
         if material['current_stock'] <= material['min_stock']:
             stock_item.setForeground(Qt.GlobalColor.red)
-        self.ui.tableMaterials.setItem(row, 3, stock_item)
+        self.ui.tableInventory.setItem(row, 3, stock_item)
 
-        self.ui.tableMaterials.setItem(row, 4, QTableWidgetItem(material['unit'] or ''))
-        self.ui.tableMaterials.setItem(row, 5, QTableWidgetItem(f"{material['min_stock']:.2f}"))
-        self.ui.tableMaterials.setItem(row, 6, QTableWidgetItem(material['supplier'] or ''))
+        self.ui.tableInventory.setItem(row, 4, QTableWidgetItem(material['unit'] or ''))
+        self.ui.tableInventory.setItem(row, 5, QTableWidgetItem(f"{material['min_stock']:.2f}"))
+        self.ui.tableInventory.setItem(row, 6, QTableWidgetItem(material['supplier'] or ''))
 
         status_item = QTableWidgetItem(material['status'] or 'Available')
         if material['status'] == 'Available':
@@ -188,7 +189,7 @@ class InventoryWidget(QWidget):
         elif material['status'] == 'Out of Stock':
             status_item.setForeground(Qt.GlobalColor.red)
 
-        self.ui.tableMaterials.setItem(row, 7, status_item)
+        self.ui.tableInventory.setItem(row, 7, status_item)
 
     def add_material(self):
         dialog = InventoryDialog(self)
@@ -295,12 +296,14 @@ class InventoryWidget(QWidget):
                 show_error(self, "Error", "Failed to update stock")
 
     def search_materials(self, text):
-        for row in range(self.ui.tableMaterials.rowCount()):
+        for row in range(self.ui.tableInventory.rowCount()):
             match = False
-            for col in range(self.ui.tableMaterials.columnCount()):
-                item = self.ui.tableMaterials.item(row, col)
+            for col in range(self.ui.tableInventory.columnCount()):
+                item = self.ui.tableInventory.item(row, col)
                 if item and text.lower() in item.text().lower():
                     match = True
                     break
-            self.ui.tableMaterials.setRowHidden(row, not match)
+            self.ui.tableInventory.setRowHidden(row, not match)
+
+
 

@@ -1,5 +1,5 @@
 from datetime import datetime
-from PySide6.QtWidgets import QWidget, QDialog, QTableWidgetItem, QHeaderView, QMessageBox
+from PySide6.QtWidgets import QWidget, QDialog, QTableWidgetItem, QHeaderView, QMessageBox, QAbstractItemView
 from PySide6.QtCore import Qt
 
 from ui_compiled.employees_ui import Ui_EmployeesWidget
@@ -137,19 +137,22 @@ class EmployeesWidget(QWidget):
         self.ui.tableEmployees.setColumnWidth(6, 100)
 
         header = self.ui.tableEmployees.horizontalHeader()
-        header.setSectionResizeMode(4, QHeaderView.Stretch)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
 
-        self.ui.tableEmployees.setSelectionBehavior(QTableWidgetItem.SelectRows)
-        self.ui.tableEmployees.setSelectionMode(QTableWidgetItem.SingleSelection)
+        self.ui.tableEmployees.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.ui.tableEmployees.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
     def setup_connections(self):
-        self.ui.btnAdd.clicked.connect(self.add_employee)
-        self.ui.btnEdit.clicked.connect(self.edit_employee)
-        self.ui.btnDelete.clicked.connect(self.delete_employee)
-        self.ui.btnBlockUnblock.clicked.connect(self.toggle_employee_status)
+        self.ui.btnAddEmployee.clicked.connect(self.add_employee)
+        self.ui.btnEditEmployee.clicked.connect(self.edit_employee)
+        self.ui.btnDeleteEmployee.clicked.connect(self.delete_employee)
+        if hasattr(self.ui, 'btnBlockUnblock'):
+            self.ui.btnBlockUnblock.clicked.connect(self.toggle_employee_status)
         self.ui.btnRefresh.clicked.connect(self.load_employees)
-        self.ui.txtSearch.textChanged.connect(self.search_employees)
-        self.ui.cmbFilterRole.currentTextChanged.connect(self.filter_employees)
+        if hasattr(self.ui, 'txtSearch'):
+            self.ui.txtSearch.textChanged.connect(self.search_employees)
+        if hasattr(self.ui, 'cmbFilterStatus'):
+            self.ui.cmbFilterStatus.currentTextChanged.connect(self.filter_employees)
         self.ui.tableEmployees.itemSelectionChanged.connect(self.on_selection_changed)
 
     def on_selection_changed(self):
@@ -326,13 +329,15 @@ class EmployeesWidget(QWidget):
                     break
             self.ui.tableEmployees.setRowHidden(row, not match)
 
-    def filter_employees(self, role):
-        if role == "All":
+    def filter_employees(self, status):
+        if status == "All Employees" or status == "All":
             for row in range(self.ui.tableEmployees.rowCount()):
                 self.ui.tableEmployees.setRowHidden(row, False)
         else:
             for row in range(self.ui.tableEmployees.rowCount()):
-                role_item = self.ui.tableEmployees.item(row, 2)
-                if role_item:
-                    self.ui.tableEmployees.setRowHidden(row, role_item.text() != role)
+                status_item = self.ui.tableEmployees.item(row, 6)
+                if status_item:
+                    self.ui.tableEmployees.setRowHidden(row, status_item.text() != status)
+
+
 

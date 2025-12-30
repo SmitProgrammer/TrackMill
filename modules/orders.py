@@ -1,5 +1,5 @@
 from datetime import datetime
-from PySide6.QtWidgets import QWidget, QDialog, QTableWidgetItem, QHeaderView, QMessageBox
+from PySide6.QtWidgets import QWidget, QDialog, QTableWidgetItem, QHeaderView, QMessageBox, QAbstractItemView
 from PySide6.QtCore import Qt
 
 from ui_compiled.orders_ui import Ui_OrdersWidget
@@ -118,18 +118,20 @@ class OrdersWidget(QWidget):
         self.ui.tableOrders.setColumnWidth(7, 100)
 
         header = self.ui.tableOrders.horizontalHeader()
-        header.setSectionResizeMode(2, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
-        self.ui.tableOrders.setSelectionBehavior(QTableWidgetItem.SelectRows)
-        self.ui.tableOrders.setSelectionMode(QTableWidgetItem.SingleSelection)
+        self.ui.tableOrders.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.ui.tableOrders.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
     def setup_connections(self):
-        self.ui.btnAdd.clicked.connect(self.add_order)
-        self.ui.btnEdit.clicked.connect(self.edit_order)
-        self.ui.btnDelete.clicked.connect(self.delete_order)
+        self.ui.btnAddOrder.clicked.connect(self.add_order)
+        self.ui.btnEditOrder.clicked.connect(self.edit_order)
+        self.ui.btnDeleteOrder.clicked.connect(self.delete_order)
         self.ui.btnRefresh.clicked.connect(self.load_orders)
-        self.ui.txtSearch.textChanged.connect(self.search_orders)
-        self.ui.cmbFilterStatus.currentTextChanged.connect(self.filter_orders)
+        if hasattr(self.ui, 'txtSearch'):
+            self.ui.txtSearch.textChanged.connect(self.search_orders)
+        if hasattr(self.ui, 'cmbFilterStatus'):
+            self.ui.cmbFilterStatus.currentTextChanged.connect(self.filter_orders)
         self.ui.tableOrders.itemSelectionChanged.connect(self.on_selection_changed)
 
     def on_selection_changed(self):
@@ -266,4 +268,5 @@ class OrdersWidget(QWidget):
                 status_item = self.ui.tableOrders.item(row, 7)
                 if status_item:
                     self.ui.tableOrders.setRowHidden(row, status_item.text() != status)
+
 

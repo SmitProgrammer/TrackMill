@@ -1,5 +1,5 @@
 from datetime import datetime
-from PySide6.QtWidgets import QWidget, QDialog, QTableWidgetItem, QHeaderView, QMessageBox
+from PySide6.QtWidgets import QWidget, QDialog, QTableWidgetItem, QHeaderView, QMessageBox, QAbstractItemView
 from PySide6.QtCore import Qt
 
 from ui_compiled.machines_ui import Ui_MachinesWidget
@@ -88,18 +88,20 @@ class MachinesWidget(QWidget):
         self.ui.tableMachines.setColumnWidth(6, 120)
 
         header = self.ui.tableMachines.horizontalHeader()
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
 
-        self.ui.tableMachines.setSelectionBehavior(QTableWidgetItem.SelectRows)
-        self.ui.tableMachines.setSelectionMode(QTableWidgetItem.SingleSelection)
+        self.ui.tableMachines.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.ui.tableMachines.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
     def setup_connections(self):
-        self.ui.btnAdd.clicked.connect(self.add_machine)
-        self.ui.btnEdit.clicked.connect(self.edit_machine)
-        self.ui.btnDelete.clicked.connect(self.delete_machine)
+        self.ui.btnAddMachine.clicked.connect(self.add_machine)
+        self.ui.btnEditMachine.clicked.connect(self.edit_machine)
+        self.ui.btnDeleteMachine.clicked.connect(self.delete_machine)
         self.ui.btnRefresh.clicked.connect(self.load_machines)
-        self.ui.txtSearch.textChanged.connect(self.search_machines)
-        self.ui.cmbFilterStatus.currentTextChanged.connect(self.filter_machines)
+        if hasattr(self.ui, 'txtSearch'):
+            self.ui.txtSearch.textChanged.connect(self.search_machines)
+        if hasattr(self.ui, 'cmbFilterStatus'):
+            self.ui.cmbFilterStatus.currentTextChanged.connect(self.filter_machines)
         self.ui.tableMachines.itemSelectionChanged.connect(self.on_selection_changed)
 
     def on_selection_changed(self):
@@ -235,4 +237,5 @@ class MachinesWidget(QWidget):
                 status_item = self.ui.tableMachines.item(row, 4)
                 if status_item:
                     self.ui.tableMachines.setRowHidden(row, status_item.text() != status)
+
 

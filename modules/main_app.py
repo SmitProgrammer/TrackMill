@@ -135,8 +135,10 @@ class MainWindow(QMainWindow):
             self.ui.stackedWidget.setCurrentWidget(widget)
 
         except Exception as e:
-            print(f"❌ Error loading module '{module_name}': {e}")
-            show_info(self, "Module Loading", f"Module '{module_name}' is under development")
+            import traceback
+            print(f"Error loading module '{module_name}': {e}")
+            traceback.print_exc()
+            show_info(self, "Module Loading Error", f"Error loading '{module_name}': {str(e)}")
 
     def create_module_widget(self, module_name):
         if module_name == 'dashboard':

@@ -1,5 +1,5 @@
 from datetime import datetime
-from PySide6.QtWidgets import QWidget, QDialog, QTableWidgetItem, QHeaderView, QMessageBox
+from PySide6.QtWidgets import QWidget, QDialog, QTableWidgetItem, QHeaderView, QMessageBox, QAbstractItemView
 from PySide6.QtCore import Qt
 
 from ui_compiled.production_ui import Ui_ProductionWidget
@@ -141,40 +141,42 @@ class ProductionWidget(QWidget):
         self.load_jobs()
 
     def setup_table(self):
-        self.ui.tableJobCards.setColumnWidth(0, 100)
-        self.ui.tableJobCards.setColumnWidth(1, 100)
-        self.ui.tableJobCards.setColumnWidth(2, 150)
-        self.ui.tableJobCards.setColumnWidth(3, 120)
-        self.ui.tableJobCards.setColumnWidth(4, 120)
-        self.ui.tableJobCards.setColumnWidth(5, 140)
-        self.ui.tableJobCards.setColumnWidth(6, 140)
-        self.ui.tableJobCards.setColumnWidth(7, 100)
+        self.ui.tableJobs.setColumnWidth(0, 100)
+        self.ui.tableJobs.setColumnWidth(1, 100)
+        self.ui.tableJobs.setColumnWidth(2, 150)
+        self.ui.tableJobs.setColumnWidth(3, 120)
+        self.ui.tableJobs.setColumnWidth(4, 120)
+        self.ui.tableJobs.setColumnWidth(5, 140)
+        self.ui.tableJobs.setColumnWidth(6, 140)
+        self.ui.tableJobs.setColumnWidth(7, 100)
 
-        header = self.ui.tableJobCards.horizontalHeader()
-        header.setSectionResizeMode(2, QHeaderView.Stretch)
+        header = self.ui.tableJobs.horizontalHeader()
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
-        self.ui.tableJobCards.setSelectionBehavior(QTableWidgetItem.SelectRows)
-        self.ui.tableJobCards.setSelectionMode(QTableWidgetItem.SingleSelection)
+        self.ui.tableJobs.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.ui.tableJobs.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
     def setup_connections(self):
-        self.ui.btnAdd.clicked.connect(self.add_job)
-        self.ui.btnEdit.clicked.connect(self.edit_job)
-        self.ui.btnDelete.clicked.connect(self.delete_job)
+        self.ui.btnNewJob.clicked.connect(self.add_job)
+        self.ui.btnEditJob.clicked.connect(self.edit_job)
+        self.ui.btnDeleteJob.clicked.connect(self.delete_job)
         self.ui.btnRefresh.clicked.connect(self.load_jobs)
-        self.ui.txtSearch.textChanged.connect(self.search_jobs)
-        self.ui.cmbFilterStatus.currentTextChanged.connect(self.filter_jobs)
-        self.ui.tableJobCards.itemSelectionChanged.connect(self.on_selection_changed)
+        if hasattr(self.ui, 'txtSearch'):
+            self.ui.txtSearch.textChanged.connect(self.search_jobs)
+        if hasattr(self.ui, 'cmbFilterStatus'):
+            self.ui.cmbFilterStatus.currentTextChanged.connect(self.filter_jobs)
+        self.ui.tableJobs.itemSelectionChanged.connect(self.on_selection_changed)
 
     def on_selection_changed(self):
-        selected_items = self.ui.tableJobCards.selectedItems()
+        selected_items = self.ui.tableJobs.selectedItems()
         if selected_items:
             row = selected_items[0].row()
-            self.current_job_id = self.ui.tableJobCards.item(row, 0).text()
+            self.current_job_id = self.ui.tableJobs.item(row, 0).text()
         else:
             self.current_job_id = None
 
     def load_jobs(self):
-        self.ui.tableJobCards.setRowCount(0)
+        self.ui.tableJobs.setRowCount(0)
 
         jobs = sqlite_db.fetch_all("SELECT * FROM jobs ORDER BY start_time DESC")
 
@@ -184,16 +186,16 @@ class ProductionWidget(QWidget):
         self.ui.lblTotalJobs.setText(f"Total: {len(jobs)} job cards")
 
     def add_job_to_table(self, job):
-        row = self.ui.tableJobCards.rowCount()
-        self.ui.tableJobCards.insertRow(row)
+        row = self.ui.tableJobs.rowCount()
+        self.ui.tableJobs.insertRow(row)
 
-        self.ui.tableJobCards.setItem(row, 0, QTableWidgetItem(job['id']))
-        self.ui.tableJobCards.setItem(row, 1, QTableWidgetItem(job['order_id'] or ''))
-        self.ui.tableJobCards.setItem(row, 2, QTableWidgetItem(job['product_name']))
-        self.ui.tableJobCards.setItem(row, 3, QTableWidgetItem(job['machine_name'] or ''))
-        self.ui.tableJobCards.setItem(row, 4, QTableWidgetItem(job['operator_name'] or ''))
-        self.ui.tableJobCards.setItem(row, 5, QTableWidgetItem(job['start_time'] or ''))
-        self.ui.tableJobCards.setItem(row, 6, QTableWidgetItem(job['end_time'] or ''))
+        self.ui.tableJobs.setItem(row, 0, QTableWidgetItem(job['id']))
+        self.ui.tableJobs.setItem(row, 1, QTableWidgetItem(job['order_id'] or ''))
+        self.ui.tableJobs.setItem(row, 2, QTableWidgetItem(job['product_name']))
+        self.ui.tableJobs.setItem(row, 3, QTableWidgetItem(job['machine_name'] or ''))
+        self.ui.tableJobs.setItem(row, 4, QTableWidgetItem(job['operator_name'] or ''))
+        self.ui.tableJobs.setItem(row, 5, QTableWidgetItem(job['start_time'] or ''))
+        self.ui.tableJobs.setItem(row, 6, QTableWidgetItem(job['end_time'] or ''))
 
         status_item = QTableWidgetItem(job['status'] or 'Pending')
         if job['status'] == 'Completed':
@@ -203,7 +205,7 @@ class ProductionWidget(QWidget):
         elif job['status'] == 'Pending':
             status_item.setForeground(Qt.GlobalColor.darkYellow)
 
-        self.ui.tableJobCards.setItem(row, 7, status_item)
+        self.ui.tableJobs.setItem(row, 7, status_item)
 
     def add_job(self):
         dialog = JobCardDialog(self)
@@ -279,22 +281,24 @@ class ProductionWidget(QWidget):
                 show_error(self, "Error", "Failed to delete job card")
 
     def search_jobs(self, text):
-        for row in range(self.ui.tableJobCards.rowCount()):
+        for row in range(self.ui.tableJobs.rowCount()):
             match = False
-            for col in range(self.ui.tableJobCards.columnCount()):
-                item = self.ui.tableJobCards.item(row, col)
+            for col in range(self.ui.tableJobs.columnCount()):
+                item = self.ui.tableJobs.item(row, col)
                 if item and text.lower() in item.text().lower():
                     match = True
                     break
-            self.ui.tableJobCards.setRowHidden(row, not match)
+            self.ui.tableJobs.setRowHidden(row, not match)
 
     def filter_jobs(self, status):
         if status == "All":
-            for row in range(self.ui.tableJobCards.rowCount()):
-                self.ui.tableJobCards.setRowHidden(row, False)
+            for row in range(self.ui.tableJobs.rowCount()):
+                self.ui.tableJobs.setRowHidden(row, False)
         else:
-            for row in range(self.ui.tableJobCards.rowCount()):
-                status_item = self.ui.tableJobCards.item(row, 7)
+            for row in range(self.ui.tableJobs.rowCount()):
+                status_item = self.ui.tableJobs.item(row, 7)
                 if status_item:
-                    self.ui.tableJobCards.setRowHidden(row, status_item.text() != status)
+                    self.ui.tableJobs.setRowHidden(row, status_item.text() != status)
+
+
 
