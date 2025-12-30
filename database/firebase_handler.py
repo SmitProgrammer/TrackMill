@@ -4,6 +4,7 @@ Firebase Database Handler using Pyrebase4
 
 import json
 import pyrebase
+from datetime import datetime
 from config.settings import FIREBASE_CONFIG_PATH, DB_ROOT
 
 
@@ -81,6 +82,22 @@ class FirebaseDB:
         self.user = None
         return True
     
+    def update_user_status(self, uid, is_active):
+        """
+        Update user status in Firebase (for blocking/unblocking)
+        In a real app, this would use Firebase Admin SDK or custom claims
+        For now, we'll store it in the database
+        """
+        try:
+            status_data = {
+                'status': 'active' if is_active else 'blocked',
+                'updated_at': str(datetime.now())
+            }
+            self.db.child('users').child(uid).update(status_data)
+            return True, None
+        except Exception as e:
+            return False, f"Update status error: {str(e)}"
+
     def get_user_token(self):
         """Get current user's ID token"""
         if self.user:

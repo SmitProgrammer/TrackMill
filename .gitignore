@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+.venv/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Firebase credentials (IMPORTANT - don't commit real credentials)
+config/firebase_credentials.json
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Database backups
+backups/
+*.db
+*.sqlite
+data/
+
+# Test files
+test_*.py
+tests/
+
+*.md
+
+# AI Context File (for AI assistants only - never push)
+AI_CONTEXT.md
+
+# Compiled UI files (can be regenerated)
+# ui_compiled/*.py
+# Firebase Configuration Placeholder
+#
+# Replace this file with your actual Firebase service account credentials
+#
+# Steps to get your credentials:
+# 1. Go to https://console.firebase.google.com
+# 2. Select your project (or create new one)
+# 3. Go to Project Settings > Service Accounts
+# 4. Click "Generate New Private Key"
+# 5. Download the JSON file
+# 6. Replace firebase_credentials.json with the downloaded file
+# 7. Update FIREBASE_DATABASE_URL in config/settings.py
+

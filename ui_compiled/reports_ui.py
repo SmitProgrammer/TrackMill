@@ -1,0 +1,260 @@
+# -*- coding: utf-8 -*-
+
+################################################################################
+## Form generated from reading UI file 'reports.ui'
+##
+## Created by: Qt User Interface Compiler version 6.10.0
+##
+## WARNING! All changes made in this file will be lost when recompiling UI file!
+################################################################################
+
+from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+    QMetaObject, QObject, QPoint, QRect,
+    QSize, QTime, QUrl, Qt)
+from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+    QFont, QFontDatabase, QGradient, QIcon,
+    QImage, QKeySequence, QLinearGradient, QPainter,
+    QPalette, QPixmap, QRadialGradient, QTransform)
+from PySide6.QtWidgets import (QApplication, QComboBox, QDateEdit, QGridLayout,
+    QHBoxLayout, QLabel, QPushButton, QSizePolicy,
+    QTextEdit, QVBoxLayout, QWidget)
+
+class Ui_ReportsWidget(object):
+    def setupUi(self, ReportsWidget):
+        if not ReportsWidget.objectName():
+            ReportsWidget.setObjectName(u"ReportsWidget")
+        ReportsWidget.resize(900, 600)
+        ReportsWidget.setStyleSheet(u"QWidget#ReportsWidget {\n"
+"    background-color: #f5f5f5;\n"
+"}\n"
+"\n"
+"QPushButton#btnGenerateReport, QPushButton#btnExportPDF, QPushButton#btnExportExcel {\n"
+"    padding: 12px 25px;\n"
+"    border-radius: 5px;\n"
+"    font-size: 14px;\n"
+"    font-weight: bold;\n"
+"}\n"
+"\n"
+"QPushButton#btnGenerateReport {\n"
+"    background-color: #2196F3;\n"
+"    color: white;\n"
+"    border: none;\n"
+"}\n"
+"\n"
+"QPushButton#btnGenerateReport:hover {\n"
+"    background-color: #0b7dda;\n"
+"}\n"
+"\n"
+"QPushButton#btnExportPDF {\n"
+"    background-color: #f44336;\n"
+"    color: white;\n"
+"    border: none;\n"
+"}\n"
+"\n"
+"QPushButton#btnExportPDF:hover {\n"
+"    background-color: #da190b;\n"
+"}\n"
+"\n"
+"QPushButton#btnExportExcel {\n"
+"    background-color: #4CAF50;\n"
+"    color: white;\n"
+"    border: none;\n"
+"}\n"
+"\n"
+"QPushButton#btnExportExcel:hover {\n"
+"    background-color: #45a049;\n"
+"}\n"
+"\n"
+"QComboBox#cmbReportType, QComboBox#cmbTimePeriod {\n"
+"    padding: 10px;\n"
+"    border: 2px solid #ddd;\n"
+"    bo"
+                        "rder-radius: 5px;\n"
+"    font-size: 13px;\n"
+"}\n"
+"\n"
+"QWidget#reportCard {\n"
+"    background-color: white;\n"
+"    border-radius: 10px;\n"
+"    border: 1px solid #e0e0e0;\n"
+"}\n"
+"\n"
+"QLabel#lblReportTitle {\n"
+"    font-size: 16px;\n"
+"    font-weight: bold;\n"
+"    color: #333;\n"
+"}\n"
+"\n"
+"QTextEdit#txtReportPreview {\n"
+"    border: 1px solid #ddd;\n"
+"    border-radius: 5px;\n"
+"    background-color: #fafafa;\n"
+"}")
+        self.verticalLayout = QVBoxLayout(ReportsWidget)
+        self.verticalLayout.setSpacing(20)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.verticalLayout.setContentsMargins(20, 20, 20, 20)
+        self.label = QLabel(ReportsWidget)
+        self.label.setObjectName(u"label")
+        self.label.setStyleSheet(u"font-size: 18px; font-weight: bold; color: #333;")
+
+        self.verticalLayout.addWidget(self.label)
+
+        self.reportCard = QWidget(ReportsWidget)
+        self.reportCard.setObjectName(u"reportCard")
+        self.verticalLayout_2 = QVBoxLayout(self.reportCard)
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.verticalLayout_2.setContentsMargins(20, 20, 20, 20)
+        self.lblReportTitle = QLabel(self.reportCard)
+        self.lblReportTitle.setObjectName(u"lblReportTitle")
+
+        self.verticalLayout_2.addWidget(self.lblReportTitle)
+
+        self.gridLayout = QGridLayout()
+        self.gridLayout.setSpacing(15)
+        self.gridLayout.setObjectName(u"gridLayout")
+        self.label_2 = QLabel(self.reportCard)
+        self.label_2.setObjectName(u"label_2")
+        self.label_2.setStyleSheet(u"font-size: 13px; color: #555;")
+
+        self.gridLayout.addWidget(self.label_2, 0, 0, 1, 1)
+
+        self.cmbReportType = QComboBox(self.reportCard)
+        self.cmbReportType.addItem("")
+        self.cmbReportType.addItem("")
+        self.cmbReportType.addItem("")
+        self.cmbReportType.addItem("")
+        self.cmbReportType.addItem("")
+        self.cmbReportType.addItem("")
+        self.cmbReportType.setObjectName(u"cmbReportType")
+        self.cmbReportType.setMinimumSize(QSize(0, 40))
+
+        self.gridLayout.addWidget(self.cmbReportType, 0, 1, 1, 1)
+
+        self.label_3 = QLabel(self.reportCard)
+        self.label_3.setObjectName(u"label_3")
+        self.label_3.setStyleSheet(u"font-size: 13px; color: #555;")
+
+        self.gridLayout.addWidget(self.label_3, 1, 0, 1, 1)
+
+        self.cmbTimePeriod = QComboBox(self.reportCard)
+        self.cmbTimePeriod.addItem("")
+        self.cmbTimePeriod.addItem("")
+        self.cmbTimePeriod.addItem("")
+        self.cmbTimePeriod.addItem("")
+        self.cmbTimePeriod.addItem("")
+        self.cmbTimePeriod.addItem("")
+        self.cmbTimePeriod.setObjectName(u"cmbTimePeriod")
+        self.cmbTimePeriod.setMinimumSize(QSize(0, 40))
+
+        self.gridLayout.addWidget(self.cmbTimePeriod, 1, 1, 1, 1)
+
+        self.label_4 = QLabel(self.reportCard)
+        self.label_4.setObjectName(u"label_4")
+        self.label_4.setStyleSheet(u"font-size: 13px; color: #555;")
+
+        self.gridLayout.addWidget(self.label_4, 2, 0, 1, 1)
+
+        self.dateFrom = QDateEdit(self.reportCard)
+        self.dateFrom.setObjectName(u"dateFrom")
+        self.dateFrom.setMinimumSize(QSize(0, 40))
+        self.dateFrom.setStyleSheet(u"padding: 8px; border: 2px solid #ddd; border-radius: 5px;")
+        self.dateFrom.setCalendarPopup(True)
+
+        self.gridLayout.addWidget(self.dateFrom, 2, 1, 1, 1)
+
+        self.label_5 = QLabel(self.reportCard)
+        self.label_5.setObjectName(u"label_5")
+        self.label_5.setStyleSheet(u"font-size: 13px; color: #555;")
+
+        self.gridLayout.addWidget(self.label_5, 3, 0, 1, 1)
+
+        self.dateTo = QDateEdit(self.reportCard)
+        self.dateTo.setObjectName(u"dateTo")
+        self.dateTo.setMinimumSize(QSize(0, 40))
+        self.dateTo.setStyleSheet(u"padding: 8px; border: 2px solid #ddd; border-radius: 5px;")
+        self.dateTo.setCalendarPopup(True)
+
+        self.gridLayout.addWidget(self.dateTo, 3, 1, 1, 1)
+
+
+        self.verticalLayout_2.addLayout(self.gridLayout)
+
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.btnGenerateReport = QPushButton(self.reportCard)
+        self.btnGenerateReport.setObjectName(u"btnGenerateReport")
+        self.btnGenerateReport.setMinimumSize(QSize(0, 45))
+        self.btnGenerateReport.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+
+        self.horizontalLayout.addWidget(self.btnGenerateReport)
+
+        self.btnExportPDF = QPushButton(self.reportCard)
+        self.btnExportPDF.setObjectName(u"btnExportPDF")
+        self.btnExportPDF.setEnabled(False)
+        self.btnExportPDF.setMinimumSize(QSize(0, 45))
+        self.btnExportPDF.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+
+        self.horizontalLayout.addWidget(self.btnExportPDF)
+
+        self.btnExportExcel = QPushButton(self.reportCard)
+        self.btnExportExcel.setObjectName(u"btnExportExcel")
+        self.btnExportExcel.setEnabled(False)
+        self.btnExportExcel.setMinimumSize(QSize(0, 45))
+        self.btnExportExcel.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+
+        self.horizontalLayout.addWidget(self.btnExportExcel)
+
+
+        self.verticalLayout_2.addLayout(self.horizontalLayout)
+
+
+        self.verticalLayout.addWidget(self.reportCard)
+
+        self.lblPreviewTitle = QLabel(ReportsWidget)
+        self.lblPreviewTitle.setObjectName(u"lblPreviewTitle")
+        self.lblPreviewTitle.setStyleSheet(u"font-size: 15px; font-weight: bold; color: #333;")
+
+        self.verticalLayout.addWidget(self.lblPreviewTitle)
+
+        self.txtReportPreview = QTextEdit(ReportsWidget)
+        self.txtReportPreview.setObjectName(u"txtReportPreview")
+        self.txtReportPreview.setReadOnly(True)
+
+        self.verticalLayout.addWidget(self.txtReportPreview)
+
+
+        self.retranslateUi(ReportsWidget)
+
+        QMetaObject.connectSlotsByName(ReportsWidget)
+    # setupUi
+
+    def retranslateUi(self, ReportsWidget):
+        ReportsWidget.setWindowTitle(QCoreApplication.translate("ReportsWidget", u"Reports", None))
+        self.label.setText(QCoreApplication.translate("ReportsWidget", u"Generate Reports & Analytics", None))
+        self.lblReportTitle.setText(QCoreApplication.translate("ReportsWidget", u"Report Configuration", None))
+        self.label_2.setText(QCoreApplication.translate("ReportsWidget", u"Report Type:", None))
+        self.cmbReportType.setItemText(0, QCoreApplication.translate("ReportsWidget", u"Production Summary", None))
+        self.cmbReportType.setItemText(1, QCoreApplication.translate("ReportsWidget", u"Inventory Status", None))
+        self.cmbReportType.setItemText(2, QCoreApplication.translate("ReportsWidget", u"Order Analysis", None))
+        self.cmbReportType.setItemText(3, QCoreApplication.translate("ReportsWidget", u"Machine Utilization", None))
+        self.cmbReportType.setItemText(4, QCoreApplication.translate("ReportsWidget", u"Employee Productivity", None))
+        self.cmbReportType.setItemText(5, QCoreApplication.translate("ReportsWidget", u"Material Consumption", None))
+
+        self.label_3.setText(QCoreApplication.translate("ReportsWidget", u"Time Period:", None))
+        self.cmbTimePeriod.setItemText(0, QCoreApplication.translate("ReportsWidget", u"Today", None))
+        self.cmbTimePeriod.setItemText(1, QCoreApplication.translate("ReportsWidget", u"This Week", None))
+        self.cmbTimePeriod.setItemText(2, QCoreApplication.translate("ReportsWidget", u"This Month", None))
+        self.cmbTimePeriod.setItemText(3, QCoreApplication.translate("ReportsWidget", u"Last Month", None))
+        self.cmbTimePeriod.setItemText(4, QCoreApplication.translate("ReportsWidget", u"This Year", None))
+        self.cmbTimePeriod.setItemText(5, QCoreApplication.translate("ReportsWidget", u"Custom Range", None))
+
+        self.label_4.setText(QCoreApplication.translate("ReportsWidget", u"From Date:", None))
+        self.label_5.setText(QCoreApplication.translate("ReportsWidget", u"To Date:", None))
+        self.btnGenerateReport.setText(QCoreApplication.translate("ReportsWidget", u" Generate Report", None))
+        self.btnExportPDF.setText(QCoreApplication.translate("ReportsWidget", u" Export PDF", None))
+        self.btnExportExcel.setText(QCoreApplication.translate("ReportsWidget", u" Export Excel", None))
+        self.lblPreviewTitle.setText(QCoreApplication.translate("ReportsWidget", u"Report Preview", None))
+        self.txtReportPreview.setPlaceholderText(QCoreApplication.translate("ReportsWidget", u"Generated report will appear here...", None))
+    # retranslateUi
+

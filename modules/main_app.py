@@ -12,6 +12,13 @@ from database import sqlite_db
 
 from modules.dashboard import DashboardWidget
 from modules.customers import CustomersWidget
+from modules.orders import OrdersWidget
+from modules.inventory import InventoryWidget
+from modules.production import ProductionWidget
+from modules.machines import MachinesWidget
+from modules.employees import EmployeesWidget
+from modules.reports import ReportsWidget
+from modules.settings import SettingsWidget
 
 
 class MainWindow(QMainWindow):
@@ -136,6 +143,20 @@ class MainWindow(QMainWindow):
             return DashboardWidget()
         elif module_name == 'customers':
             return CustomersWidget()
+        elif module_name == 'orders':
+            return OrdersWidget()
+        elif module_name == 'inventory':
+            return InventoryWidget()
+        elif module_name == 'production':
+            return ProductionWidget()
+        elif module_name == 'machines':
+            return MachinesWidget()
+        elif module_name == 'employees':
+            return EmployeesWidget()
+        elif module_name == 'reports':
+            return ReportsWidget()
+        elif module_name == 'settings':
+            return SettingsWidget()
         else:
             placeholder = QWidget()
             placeholder.setStyleSheet("background-color: #f5f5f5;")
