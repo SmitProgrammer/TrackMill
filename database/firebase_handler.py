@@ -155,11 +155,15 @@ class FirebaseDB:
         Returns: (success: bool, data: dict, error_message: str)
         """
         try:
+            print(f"[FIREBASE] get() called for path: {path}")
             data = self.get_reference(path).get(self.get_user_token()).val()
+            print(f"[FIREBASE] Data received: {type(data)}, exists: {data is not None}")
             return True, data, None
         except Exception as e:
-            return False, None, f"Get error: {str(e)}"
-    
+            error_msg = f"Get error: {str(e)}"
+            print(f"[FIREBASE] ERROR in get(): {error_msg}")
+            return False, None, error_msg
+
     def delete(self, path):
         """
         Delete data at path

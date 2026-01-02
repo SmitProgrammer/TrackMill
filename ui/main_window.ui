@@ -24,6 +24,17 @@
     background-color: #f5f5f5;
 }
 
+QWidget {
+    color: #333333;
+}
+
+QLabel {
+    color: #333333;
+}
+
+QStackedWidget {
+    background-color: #f5f5f5;
+}
 QPushButton#btnDashboard, QPushButton#btnCustomers, QPushButton#btnOrders,
 QPushButton#btnInventory, QPushButton#btnProduction, QPushButton#btnMachines,
 QPushButton#btnEmployees, QPushButton#btnReports, QPushButton#btnSettings {

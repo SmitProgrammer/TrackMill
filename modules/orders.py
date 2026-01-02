@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt
 
 from ui_compiled.orders_ui import Ui_OrdersWidget
 from ui_compiled.order_dialog_ui import Ui_OrderDialog
-from database import sqlite_db
+from database import cloud_first_db
 from utils import show_error, show_success, show_warning, session
 
 
@@ -30,7 +30,7 @@ class OrderDialog(QDialog):
         self.ui.cmbCustomer.clear()
         self.ui.cmbCustomer.addItem("-- Select Customer --", None)
 
-        customers = sqlite_db.fetch_all("SELECT id, name FROM customers ORDER BY name")
+        customers = cloud_first_db.get_all_customers()
         for customer in customers:
             self.ui.cmbCustomer.addItem(customer['name'], customer['id'])
 
@@ -105,6 +105,11 @@ class OrdersWidget(QWidget):
 
         self.setup_table()
         self.setup_connections()
+
+        # Set initial button states
+        self.ui.btnEditOrder.setEnabled(False)
+        self.ui.btnDeleteOrder.setEnabled(False)
+
         self.load_orders()
 
     def setup_table(self):
@@ -139,18 +144,35 @@ class OrdersWidget(QWidget):
         if selected_items:
             row = selected_items[0].row()
             self.current_order_id = self.ui.tableOrders.item(row, 0).text()
+            self.ui.btnEditOrder.setEnabled(True)
+            self.ui.btnDeleteOrder.setEnabled(True)
         else:
             self.current_order_id = None
+            self.ui.btnEditOrder.setEnabled(False)
+            self.ui.btnDeleteOrder.setEnabled(False)
 
     def load_orders(self):
+        print("\n[ORDERS] ========== REFRESH STARTED ==========")
         self.ui.tableOrders.setRowCount(0)
 
-        orders = sqlite_db.fetch_all("SELECT * FROM orders ORDER BY order_date DESC")
+        # Fetch from Firebase only (Cloud-first)
+        print("[ORDERS] Fetching orders from Firebase...")
+        orders = cloud_first_db.get_all_orders()
+        print(f"[ORDERS] Firebase orders count: {len(orders)}")
 
-        for order in orders:
+        if not orders:
+            print("[ORDERS] No orders found in Firebase")
+            self.ui.lblTotalOrders.setText("Total: 0 orders")
+            print("[ORDERS] ========== REFRESH COMPLETED ==========\n")
+            return
+
+        orders_sorted = sorted(orders, key=lambda o: o.get('order_date', ''), reverse=True)
+        print(f"[ORDERS] Displaying {len(orders_sorted)} orders in UI")
+        for order in orders_sorted:
             self.add_order_to_table(order)
 
-        self.ui.lblTotalOrders.setText(f"Total: {len(orders)} orders")
+        self.ui.lblTotalOrders.setText(f"Total: {len(orders_sorted)} orders")
+        print("[ORDERS] ========== REFRESH COMPLETED ==========\n")
 
     def add_order_to_table(self, order):
         row = self.ui.tableOrders.rowCount()
@@ -185,15 +207,9 @@ class OrdersWidget(QWidget):
 
             data = dialog.get_data()
             order_id = f"ORD{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            data['id'] = order_id
-            data['created_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            if sqlite_db.insert('orders', data):
+            if cloud_first_db.create_order(order_id, data):
                 show_success(self, "Success", "Order added successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Add Order", "Orders", f"Added order {order_id}")
-
                 self.load_orders()
             else:
                 show_error(self, "Error", "Failed to add order")
@@ -203,7 +219,7 @@ class OrdersWidget(QWidget):
             show_warning(self, "No Selection", "Please select an order to edit")
             return
 
-        order = sqlite_db.fetch_one("SELECT * FROM orders WHERE id = ?", (self.current_order_id,))
+        order = cloud_first_db.get_order(self.current_order_id)
         if not order:
             show_error(self, "Error", "Order not found")
             return
@@ -216,12 +232,8 @@ class OrdersWidget(QWidget):
 
             data = dialog.get_data()
 
-            if sqlite_db.update('orders', data, "id = ?", (self.current_order_id,)):
+            if cloud_first_db.update_order(self.current_order_id, data):
                 show_success(self, "Success", "Order updated successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Edit Order", "Orders", f"Updated order {self.current_order_id}")
-
                 self.load_orders()
             else:
                 show_error(self, "Error", "Failed to update order")
@@ -238,11 +250,8 @@ class OrdersWidget(QWidget):
         )
 
         if reply == QMessageBox.Yes:
-            if sqlite_db.delete('orders', "id = ?", (self.current_order_id,)):
+            if cloud_first_db.delete_order(self.current_order_id):
                 show_success(self, "Success", "Order deleted successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Delete Order", "Orders", f"Deleted order {self.current_order_id}")
 
                 self.current_order_id = None
                 self.load_orders()
@@ -268,5 +277,3 @@ class OrdersWidget(QWidget):
                 status_item = self.ui.tableOrders.item(row, 7)
                 if status_item:
                     self.ui.tableOrders.setRowHidden(row, status_item.text() != status)
-
-

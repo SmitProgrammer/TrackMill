@@ -47,16 +47,3 @@ AI_CONTEXT.md
 
 # Compiled UI files (can be regenerated)
 # ui_compiled/*.py
-# Firebase Configuration Placeholder
-#
-# Replace this file with your actual Firebase service account credentials
-#
-# Steps to get your credentials:
-# 1. Go to https://console.firebase.google.com
-# 2. Select your project (or create new one)
-# 3. Go to Project Settings > Service Accounts
-# 4. Click "Generate New Private Key"
-# 5. Download the JSON file
-# 6. Replace firebase_credentials.json with the downloaded file
-# 7. Update FIREBASE_DATABASE_URL in config/settings.py
-

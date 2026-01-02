@@ -36,7 +36,7 @@ QLabel {
     font-weight: bold;
 }
 
-QLineEdit, QTextEdit, QComboBox, QDateTimeEdit {
+QLineEdit, QTextEdit, QSpinBox, QDoubleSpinBox {
     padding: 8px;
     border: 2px solid #ddd;
     border-radius: 5px;
@@ -45,8 +45,102 @@ QLineEdit, QTextEdit, QComboBox, QDateTimeEdit {
     color: #333;
 }
 
-QLineEdit:focus, QTextEdit:focus, QComboBox:focus, QDateTimeEdit:focus {
+QLineEdit:focus, QTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus {
     border: 2px solid #2196F3;
+}
+
+QComboBox {
+    padding: 8px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 13px;
+    background-color: white;
+    color: #333;
+}
+
+QComboBox:focus {
+    border: 2px solid #2196F3;
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 30px;
+}
+
+QComboBox::down-arrow {
+    image: none;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #333;
+    margin-right: 10px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: white;
+    color: #333;
+    selection-background-color: #2196F3;
+    selection-color: white;
+    border: 1px solid #ddd;
+}
+
+QDateEdit, QDateTimeEdit {
+    padding: 8px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 13px;
+    background-color: white;
+    color: #333;
+}
+
+QDateEdit:focus, QDateTimeEdit:focus {
+    border: 2px solid #2196F3;
+}
+
+QDateEdit::drop-down, QDateTimeEdit::drop-down {
+    border: none;
+    width: 30px;
+}
+
+QDateEdit::down-arrow, QDateTimeEdit::down-arrow {
+    image: none;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #333;
+    margin-right: 10px;
+}
+
+QDateEdit QAbstractItemView, QDateTimeEdit QAbstractItemView {
+    background-color: white;
+    color: #333;
+    selection-background-color: #2196F3;
+    selection-color: white;
+}
+
+QCheckBox {
+    font-size: 13px;
+    color: #333;
+    spacing: 8px;
+}
+
+QCheckBox::indicator {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ddd;
+    border-radius: 3px;
+    background-color: white;
+}
+
+QCheckBox::indicator:checked {
+    background-color: #2196F3;
+    border-color: #2196F3;
+    image: none;
+}
+
+QCheckBox::indicator:checked:after {
+    content: "✓";
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
 }
 
 QPushButton#btnSave {

@@ -4,6 +4,7 @@ SQLite database handler
 
 import sqlite3
 import os
+import threading
 from datetime import datetime
 
 
@@ -14,9 +15,24 @@ class SQLiteDB:
         self.db_path = db_path
         self.connection = None
         self.cursor = None
+        self._local = threading.local()
         self.ensure_db_directory()
         self.connect()
         self.create_tables()
+
+    def get_connection(self):
+        """Get thread-local connection"""
+        if not hasattr(self._local, 'connection') or self._local.connection is None:
+            self._local.connection = sqlite3.connect(self.db_path, check_same_thread=False)
+            self._local.connection.row_factory = sqlite3.Row
+        return self._local.connection
+
+    def get_cursor(self):
+        """Get thread-local cursor"""
+        conn = self.get_connection()
+        if not hasattr(self._local, 'cursor') or self._local.cursor is None:
+            self._local.cursor = conn.cursor()
+        return self._local.cursor
 
     def ensure_db_directory(self):
         """Ensure database directory exists"""
@@ -27,7 +43,8 @@ class SQLiteDB:
     def connect(self):
         """Connect to SQLite database"""
         try:
-            self.connection = sqlite3.connect(self.db_path)
+            # Enable thread-safe mode for multi-threaded access
+            self.connection = sqlite3.connect(self.db_path, check_same_thread=False)
             self.connection.row_factory = sqlite3.Row
             self.cursor = self.connection.cursor()
             print(f"SQLite database connected: {self.db_path}")
@@ -40,7 +57,7 @@ class SQLiteDB:
         """Create all required tables"""
         try:
             # Customers table
-            self.cursor.execute('''
+            self.get_cursor().execute('''
                 CREATE TABLE IF NOT EXISTS customers (
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
@@ -54,7 +71,7 @@ class SQLiteDB:
             ''')
 
             # Orders table
-            self.cursor.execute('''
+            self.get_cursor().execute('''
                 CREATE TABLE IF NOT EXISTS orders (
                     id TEXT PRIMARY KEY,
                     customer_id TEXT,
@@ -73,7 +90,7 @@ class SQLiteDB:
             ''')
 
             # Inventory/Materials table
-            self.cursor.execute('''
+            self.get_cursor().execute('''
                 CREATE TABLE IF NOT EXISTS inventory (
                     id TEXT PRIMARY KEY,
                     material_name TEXT NOT NULL,
@@ -89,7 +106,7 @@ class SQLiteDB:
             ''')
 
             # Machines table
-            self.cursor.execute('''
+            self.get_cursor().execute('''
                 CREATE TABLE IF NOT EXISTS machines (
                     id TEXT PRIMARY KEY,
                     machine_name TEXT NOT NULL,
@@ -105,7 +122,7 @@ class SQLiteDB:
             ''')
 
             # Employees table
-            self.cursor.execute('''
+            self.get_cursor().execute('''
                 CREATE TABLE IF NOT EXISTS employees (
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
@@ -122,7 +139,7 @@ class SQLiteDB:
             ''')
 
             # Jobs/Production table
-            self.cursor.execute('''
+            self.get_cursor().execute('''
                 CREATE TABLE IF NOT EXISTS jobs (
                     id TEXT PRIMARY KEY,
                     order_id TEXT,
@@ -144,7 +161,7 @@ class SQLiteDB:
             ''')
 
             # Maintenance logs table
-            self.cursor.execute('''
+            self.get_cursor().execute('''
                 CREATE TABLE IF NOT EXISTS maintenance (
                     id TEXT PRIMARY KEY,
                     machine_id TEXT,
@@ -160,7 +177,7 @@ class SQLiteDB:
             ''')
 
             # Activity logs table
-            self.cursor.execute('''
+            self.get_cursor().execute('''
                 CREATE TABLE IF NOT EXISTS activity_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_email TEXT,
@@ -172,14 +189,14 @@ class SQLiteDB:
             ''')
 
             # Settings table
-            self.cursor.execute('''
+            self.get_cursor().execute('''
                 CREATE TABLE IF NOT EXISTS settings (
                     key TEXT PRIMARY KEY,
                     value TEXT
                 )
             ''')
 
-            self.connection.commit()
+            self.get_connection().commit()
             print("SQLite tables created/verified")
             return True
 
@@ -187,42 +204,30 @@ class SQLiteDB:
             print(f"Error creating tables: {e}")
             return False
 
-    def execute(self, query, params=None):
-        """Execute a query"""
-        try:
-            if params:
-                self.cursor.execute(query, params)
-            else:
-                self.cursor.execute(query)
-            self.connection.commit()
-            return True
-        except Exception as e:
-            print(f" Query execution error: {e}")
-            return False
-
     def fetch_one(self, query, params=None):
-        """Fetch one row"""
+        """Fetch one record from a query"""
         try:
+            cursor = self.get_cursor()
             if params:
-                self.cursor.execute(query, params)
+                cursor.execute(query, params)
             else:
-                self.cursor.execute(query)
-            row = self.cursor.fetchone()
-            if row:
-                return dict(row)
-            return None
+                cursor.execute(query)
+            row = cursor.fetchone()
+            return dict(row) if row else None
         except Exception as e:
             print(f" Fetch one error: {e}")
             return None
 
+
     def fetch_all(self, query, params=None):
-        """Fetch all rows"""
+        """Fetch all records from a query"""
         try:
+            cursor = self.get_cursor()
             if params:
-                self.cursor.execute(query, params)
+                cursor.execute(query, params)
             else:
-                self.cursor.execute(query)
-            rows = self.cursor.fetchall()
+                cursor.execute(query)
+            rows = cursor.fetchall()
             return [dict(row) for row in rows]
         except Exception as e:
             print(f" Fetch all error: {e}")
@@ -231,15 +236,19 @@ class SQLiteDB:
     def insert(self, table, data):
         """Insert data into table"""
         try:
-            data['created_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            data['updated_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Only add timestamps if the table has those columns
+            # (settings and maintenance tables don't have updated_at)
+            if table not in ['settings']:
+                data['created_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                if table not in ['maintenance']:
+                    data['updated_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             columns = ', '.join(data.keys())
             placeholders = ', '.join(['?' for _ in data])
             query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
 
-            self.cursor.execute(query, list(data.values()))
-            self.connection.commit()
+            self.get_cursor().execute(query, list(data.values()))
+            self.get_connection().commit()
             return True
         except Exception as e:
             print(f" Insert error: {e}")
@@ -248,7 +257,9 @@ class SQLiteDB:
     def update(self, table, data, where_clause, where_params=None):
         """Update data in table"""
         try:
-            data['updated_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Only add updated_at if the table has that column
+            if table not in ['settings', 'maintenance']:
+                data['updated_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             set_clause = ', '.join([f"{key} = ?" for key in data.keys()])
             query = f"UPDATE {table} SET {set_clause} WHERE {where_clause}"
@@ -257,8 +268,12 @@ class SQLiteDB:
             if where_params:
                 params.extend(where_params)
 
-            self.cursor.execute(query, params)
-            self.connection.commit()
+            self.get_cursor().execute(query, params)
+            self.get_connection().commit()
+            return True
+        except Exception as e:
+            print(f" Update error: {e}")
+            return False
             return True
         except Exception as e:
             print(f" Update error: {e}")
@@ -269,10 +284,10 @@ class SQLiteDB:
         try:
             query = f"DELETE FROM {table} WHERE {where_clause}"
             if where_params:
-                self.cursor.execute(query, where_params)
+                self.get_cursor().execute(query, where_params)
             else:
-                self.cursor.execute(query)
-            self.connection.commit()
+                self.get_cursor().execute(query)
+            self.get_connection().commit()
             return True
         except Exception as e:
             print(f" Delete error: {e}")
@@ -286,9 +301,9 @@ class SQLiteDB:
                 query += f" WHERE {where_clause}"
 
             if where_params:
-                self.cursor.execute(query, where_params)
+                self.get_cursor().execute(query, where_params)
             else:
-                self.cursor.execute(query)
+                self.get_cursor().execute(query)
 
             result = self.cursor.fetchone()
             return result['count'] if result else 0
@@ -304,8 +319,8 @@ class SQLiteDB:
                 VALUES (?, ?, ?, ?, ?)
             '''
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            self.cursor.execute(query, (user_email, action, module, details, timestamp))
-            self.connection.commit()
+            self.get_cursor().execute(query, (user_email, action, module, details, timestamp))
+            self.get_connection().commit()
             return True
         except Exception as e:
             print(f" Log activity error: {e}")
@@ -331,17 +346,17 @@ class SQLiteDB:
         """Set setting value"""
         existing = self.get_setting(key)
         if existing is not None:
-            return self.execute("UPDATE settings SET value = ? WHERE key = ?", (value, key))
+            return self.update('settings', {'value': value}, 'key = ?', (key,))
         else:
-            return self.execute("INSERT INTO settings (key, value) VALUES (?, ?)", (key, value))
+            return self.insert('settings', {'key': key, 'value': value})
 
     def clear_all_data(self):
         """Clear all data from tables (for testing)"""
         tables = ['customers', 'orders', 'inventory', 'machines', 'employees', 'jobs', 'maintenance', 'activity_logs']
         try:
             for table in tables:
-                self.cursor.execute(f"DELETE FROM {table}")
-            self.connection.commit()
+                self.get_cursor().execute(f"DELETE FROM {table}")
+            self.get_connection().commit()
             print(" All data cleared")
             return True
         except Exception as e:
@@ -357,4 +372,5 @@ class SQLiteDB:
 
 # Create singleton instance
 sqlite_db = SQLiteDB()
+
 

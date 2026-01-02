@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QIcon
 
 from ui_compiled.login_ui import Ui_LoginWindow
-from database import firebase_db, sqlite_db
+from database import firebase_db
 from utils import show_error, show_info, validate_email, session
 from config.settings import DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD
 
@@ -101,8 +101,6 @@ class LoginWindow(QMainWindow):
                 # Store session
                 session.login(user_data)
 
-                # Log activity
-                sqlite_db.log_activity(email, "Login", "Authentication", "Admin logged in")
 
                 # Show success and open main window
                 self.login_success(email)

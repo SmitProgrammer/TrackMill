@@ -18,6 +18,14 @@
     background-color: #f5f5f5;
 }
 
+QLabel {
+    color: #333;
+}
+
+QTableWidget {
+    color: #333;
+}
+
 QPushButton#btnAddOrder, QPushButton#btnEditOrder, QPushButton#btnDeleteOrder, QPushButton#btnRefresh {
     padding: 10px 20px;
     border-radius: 5px;
@@ -56,13 +64,13 @@ QPushButton#btnDeleteOrder:hover {
 }
 
 QPushButton#btnRefresh {
-    background-color: #FF9800;
+    background-color: #607D8B;
     color: white;
     border: none;
 }
 
 QPushButton#btnRefresh:hover {
-    background-color: #e68900;
+    background-color: #546E7A;
 }
 
 QLineEdit#txtSearch {
@@ -70,7 +78,12 @@ QLineEdit#txtSearch {
     border: 2px solid #ddd;
     border-radius: 5px;
     font-size: 13px;
+    background-color: white;
     color: #333;
+}
+
+QLineEdit#txtSearch:focus {
+    border: 2px solid #2196F3;
 }
 
 QComboBox#cmbFilterStatus {
@@ -78,6 +91,12 @@ QComboBox#cmbFilterStatus {
     border: 2px solid #ddd;
     border-radius: 5px;
     font-size: 13px;
+    background-color: white;
+    color: #333;
+}
+
+QComboBox#cmbFilterStatus:focus {
+    border: 2px solid #2196F3;
 }
 
 QTableWidget {
@@ -85,6 +104,10 @@ QTableWidget {
     border: 1px solid #ddd;
     border-radius: 5px;
     gridline-color: #e0e0e0;
+}
+
+QTableWidget::item {
+    padding: 5px;
 }
 
 QTableWidget::item:selected {
@@ -99,6 +122,40 @@ QHeaderView::section {
     border-bottom: 2px solid #2196F3;
     font-weight: bold;
     color: #333;
+}
+
+QComboBox {
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 13px;
+    background-color: white;
+    color: #333;
+}
+
+QComboBox:focus {
+    border: 2px solid #2196F3;
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 30px;
+}
+
+QComboBox::down-arrow {
+    image: none;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #333;
+    margin-right: 10px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: white;
+    color: #333;
+    selection-background-color: #2196F3;
+    selection-color: white;
+    border: 1px solid #ddd;
 }</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -254,8 +311,156 @@ QHeaderView::section {
         <string>Total: 0 orders</string>
        </property>
        <property name="styleSheet">
-        <string notr="true">font-size: 13px; color: #666; padding: 10px;</string>
-       </property>
+   <string notr="true">QWidget#OrdersWidget {
+    background-color: #f5f5f5;
+}
+
+QLabel {
+    color: #333;
+}
+
+QTableWidget {
+    color: #333;
+}
+
+QPushButton#btnAddOrder, QPushButton#btnEditOrder, QPushButton#btnDeleteOrder, QPushButton#btnRefresh {
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+QPushButton#btnAddOrder {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+}
+
+QPushButton#btnAddOrder:hover {
+    background-color: #45a049;
+}
+
+QPushButton#btnEditOrder {
+    background-color: #2196F3;
+    color: white;
+    border: none;
+}
+
+QPushButton#btnEditOrder:hover {
+    background-color: #0b7dda;
+}
+
+QPushButton#btnDeleteOrder {
+    background-color: #f44336;
+    color: white;
+    border: none;
+}
+
+QPushButton#btnDeleteOrder:hover {
+    background-color: #da190b;
+}
+
+QPushButton#btnRefresh {
+    background-color: #607D8B;
+    color: white;
+    border: none;
+}
+
+QPushButton#btnRefresh:hover {
+    background-color: #546E7A;
+}
+
+QPushButton:disabled {
+    background-color: #cccccc;
+    color: #666666;
+    /* cursor: not-allowed; */
+}
+
+QLineEdit#txtSearch {
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 13px;
+    background-color: white;
+    color: #333;
+}
+
+QLineEdit#txtSearch:focus {
+    border: 2px solid #2196F3;
+}
+
+QComboBox#cmbFilterStatus {
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 13px;
+    background-color: white;
+    color: #333;
+}
+
+QComboBox#cmbFilterStatus:focus {
+    border: 2px solid #2196F3;
+}
+
+QTableWidget {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    gridline-color: #e0e0e0;
+}
+
+QTableWidget::item {
+    padding: 5px;
+}
+
+QTableWidget::item:selected {
+    background-color: #e3f2fd;
+    color: #000;
+}
+
+QHeaderView::section {
+    background-color: #f5f5f5;
+    padding: 10px;
+    border: none;
+    border-bottom: 2px solid #2196F3;
+    font-weight: bold;
+    color: #333;
+}
+
+QComboBox {
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 13px;
+    background-color: white;
+    color: #333;
+}
+
+QComboBox:focus {
+    border: 2px solid #2196F3;
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 30px;
+}
+
+QComboBox::down-arrow {
+    image: none;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #333;
+    margin-right: 10px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: white;
+    color: #333;
+    selection-background-color: #2196F3;
+    selection-color: white;
+    border: 1px solid #ddd;
+}</string>
+  </property>
       </widget>
      </item>
     </layout>
@@ -324,4 +529,5 @@ QHeaderView::section {
  <resources/>
  <connections/>
 </ui>
+
 

@@ -18,6 +18,14 @@
     background-color: #f5f5f5;
 }
 
+QLabel {
+    color: #333;
+}
+
+QTableWidget {
+    color: #333;
+}
+
 QPushButton#btnAddCustomer, QPushButton#btnEditCustomer, QPushButton#btnDeleteCustomer, QPushButton#btnRefresh {
     padding: 10px 20px;
     border-radius: 5px;
@@ -65,11 +73,17 @@ QPushButton#btnRefresh:hover {
     background-color: #e68900;
 }
 
+QPushButton:disabled {
+    background-color: #cccccc;
+    color: #666666;
+}
+
 QLineEdit#txtSearch {
     padding: 10px;
     border: 2px solid #ddd;
     border-radius: 5px;
     font-size: 13px;
+    background-color: white;
     color: #333;
 }
 

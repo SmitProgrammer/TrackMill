@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt
 
 from ui_compiled.machines_ui import Ui_MachinesWidget
 from ui_compiled.machine_dialog_ui import Ui_MachineDialog
-from database import sqlite_db
+from database import cloud_first_db
 from utils import show_error, show_success, show_warning, session
 
 
@@ -76,6 +76,13 @@ class MachinesWidget(QWidget):
 
         self.setup_table()
         self.setup_connections()
+
+        # Set initial button states
+        self.ui.btnEditMachine.setEnabled(False)
+        self.ui.btnDeleteMachine.setEnabled(False)
+        if hasattr(self.ui, 'btnMaintenance'):
+            self.ui.btnMaintenance.setEnabled(False)
+
         self.load_machines()
 
     def setup_table(self):
@@ -97,6 +104,8 @@ class MachinesWidget(QWidget):
         self.ui.btnAddMachine.clicked.connect(self.add_machine)
         self.ui.btnEditMachine.clicked.connect(self.edit_machine)
         self.ui.btnDeleteMachine.clicked.connect(self.delete_machine)
+        if hasattr(self.ui, 'btnMaintenance'):
+            self.ui.btnMaintenance.clicked.connect(self.schedule_maintenance)
         self.ui.btnRefresh.clicked.connect(self.load_machines)
         if hasattr(self.ui, 'txtSearch'):
             self.ui.txtSearch.textChanged.connect(self.search_machines)
@@ -109,13 +118,22 @@ class MachinesWidget(QWidget):
         if selected_items:
             row = selected_items[0].row()
             self.current_machine_id = self.ui.tableMachines.item(row, 0).text()
+            self.ui.btnEditMachine.setEnabled(True)
+            self.ui.btnDeleteMachine.setEnabled(True)
+            if hasattr(self.ui, 'btnMaintenance'):
+                self.ui.btnMaintenance.setEnabled(True)
         else:
             self.current_machine_id = None
+            self.ui.btnEditMachine.setEnabled(False)
+            self.ui.btnDeleteMachine.setEnabled(False)
+            if hasattr(self.ui, 'btnMaintenance'):
+                self.ui.btnMaintenance.setEnabled(False)
 
     def load_machines(self):
         self.ui.tableMachines.setRowCount(0)
 
-        machines = sqlite_db.fetch_all("SELECT * FROM machines ORDER BY machine_name")
+        # Fetch from Firebase (Cloud-only)
+        machines = cloud_first_db.get_all_machines()
 
         for machine in machines:
             self.add_machine_to_table(machine)
@@ -154,15 +172,9 @@ class MachinesWidget(QWidget):
 
             data = dialog.get_data()
             machine_id = f"MCH{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            data['id'] = machine_id
-            data['created_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            if sqlite_db.insert('machines', data):
+            if cloud_first_db.create_machine(machine_id, data):
                 show_success(self, "Success", "Machine added successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Add Machine", "Machines", f"Added {data['machine_name']}")
-
                 self.load_machines()
             else:
                 show_error(self, "Error", "Failed to add machine")
@@ -172,7 +184,7 @@ class MachinesWidget(QWidget):
             show_warning(self, "No Selection", "Please select a machine to edit")
             return
 
-        machine = sqlite_db.fetch_one("SELECT * FROM machines WHERE id = ?", (self.current_machine_id,))
+        machine = cloud_first_db.get_machine(self.current_machine_id)
         if not machine:
             show_error(self, "Error", "Machine not found")
             return
@@ -185,12 +197,8 @@ class MachinesWidget(QWidget):
 
             data = dialog.get_data()
 
-            if sqlite_db.update('machines', data, "id = ?", (self.current_machine_id,)):
+            if cloud_first_db.update_machine(self.current_machine_id, data):
                 show_success(self, "Success", "Machine updated successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Edit Machine", "Machines", f"Updated {data['machine_name']}")
-
                 self.load_machines()
             else:
                 show_error(self, "Error", "Failed to update machine")
@@ -207,16 +215,45 @@ class MachinesWidget(QWidget):
         )
 
         if reply == QMessageBox.Yes:
-            if sqlite_db.delete('machines', "id = ?", (self.current_machine_id,)):
+            if cloud_first_db.delete_machine(self.current_machine_id):
                 show_success(self, "Success", "Machine deleted successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Delete Machine", "Machines", f"Deleted machine {self.current_machine_id}")
-
                 self.current_machine_id = None
                 self.load_machines()
             else:
                 show_error(self, "Error", "Failed to delete machine")
+
+    def schedule_maintenance(self):
+        """Schedule maintenance for selected machine"""
+        if not self.current_machine_id:
+            show_warning(self, "No Selection", "Please select a machine for maintenance")
+            return
+
+        machine = cloud_first_db.get_machine(self.current_machine_id)
+        if not machine:
+            show_error(self, "Error", "Machine not found")
+            return
+
+        reply = QMessageBox.question(
+            self, "Schedule Maintenance",
+            f"Mark '{machine['machine_name']}' as under maintenance?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            from datetime import timedelta
+
+            update_data = {
+                'status': 'Maintenance',
+                'last_maintenance': datetime.now().strftime('%Y-%m-%d'),
+                'next_maintenance': (datetime.now() + timedelta(days=90)).strftime('%Y-%m-%d')
+            }
+
+            if cloud_first_db.update_machine(self.current_machine_id, update_data):
+                show_success(self, "Success", "Maintenance scheduled successfully")
+
+                self.load_machines()
+            else:
+                show_error(self, "Error", "Failed to schedule maintenance")
 
     def search_machines(self, text):
         for row in range(self.ui.tableMachines.rowCount()):
@@ -237,5 +274,4 @@ class MachinesWidget(QWidget):
                 status_item = self.ui.tableMachines.item(row, 4)
                 if status_item:
                     self.ui.tableMachines.setRowHidden(row, status_item.text() != status)
-
 

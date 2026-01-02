@@ -1,0 +1,50 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin'",
+        ".write": "auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin'",
+        ".validate": "newData.hasChildren(['name', 'role', 'email', 'status', 'created_at', 'employee_id'])"
+      }
+    },
+    "jobs": {
+      ".indexOn": ["operator_id"],
+      ".read": "auth != null",
+      ".write": "auth != null || root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$jobId": {
+        ".read": "auth != null",
+        ".write": "auth != null || root.child('users').child(auth.uid).child('role').val() === 'admin'"
+      }
+    },
+    "orders": {
+      ".read": "auth != null",
+      ".write": "auth != null || root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "machines": {
+      ".read": "auth != null",
+      ".write": "auth != null || root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "materials": {
+      ".read": "auth != null",
+      ".write": "auth != null || root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "customers": {
+      ".read": "auth != null",
+      ".write": "auth != null || root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "inventory": {
+      ".read": "auth != null",
+      ".write": "auth != null || root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "employees": {
+      ".read": "auth != null",
+      ".write": "auth != null || root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "activity_logs": {
+      ".indexOn": ["timestamp", "user_id"],
+      ".read": "auth != null",
+      ".write": "auth != null || root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    }
+  }
+}
+

@@ -1,13 +1,13 @@
 """
-Script to populate database with dummy data for testing
+Script to populate Firebase database with dummy data for testing
 """
 
 from datetime import datetime, timedelta
 import random
-from database import sqlite_db, firebase_db
+from database import cloud_first_db
 
 print("=" * 60)
-print("  POPULATING DATABASE WITH DUMMY DATA")
+print("  POPULATING FIREBASE WITH DUMMY DATA")
 print("=" * 60)
 
 # Sample data
@@ -41,20 +41,6 @@ operator_names = [
     "Ramesh Verma", "Anil Gupta", "Sanjay Yadav", "Manoj Tiwari"
 ]
 
-# Clear existing data
-print("\nClearing existing dummy data...")
-try:
-    sqlite_db.cursor.execute("DELETE FROM customers WHERE id LIKE 'CUST%'")
-    sqlite_db.cursor.execute("DELETE FROM orders WHERE id LIKE 'ORD%'")
-    sqlite_db.cursor.execute("DELETE FROM inventory WHERE id LIKE 'MAT%'")
-    sqlite_db.cursor.execute("DELETE FROM machines WHERE id LIKE 'MCH%'")
-    sqlite_db.cursor.execute("DELETE FROM employees WHERE id LIKE 'EMP%'")
-    sqlite_db.cursor.execute("DELETE FROM jobs WHERE id LIKE 'JOB%'")
-    sqlite_db.conn.commit()
-    print("Existing data cleared")
-except Exception as e:
-    print(f"Error clearing data: {e}")
-
 # Add Customers
 print("\nAdding customers...")
 customer_ids = []
@@ -63,18 +49,17 @@ for i, name in enumerate(customer_names):
     customer_ids.append(customer_id)
 
     data = {
-        'id': customer_id,
         'name': name,
         'contact': customer_contacts[i],
         'email': f"{name.lower().replace(' ', '').replace('&', '')}@example.com",
         'company': name,
         'address': f"{random.randint(1, 999)}, Industrial Area, {random.choice(['Mumbai', 'Delhi', 'Pune', 'Bangalore', 'Chennai'])}",
-        'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
 
-    sqlite_db.insert('customers', data)
-    print(f"  Added customer: {name}")
+    if cloud_first_db.create_customer(customer_id, data):
+        print(f"  ✓ Added customer: {name}")
+    else:
+        print(f"  ✗ Failed to add customer: {name}")
 
 # Add Inventory/Materials
 print("\nAdding inventory items...")
@@ -87,7 +72,6 @@ for i in range(15):
     min_stock = random.uniform(50, 200)
 
     data = {
-        'id': material_id,
         'material_name': f"{random.choice(material_types)} Sheet/Bar {i+1}",
         'material_type': random.choice(material_types),
         'current_stock': round(current_stock, 2),
@@ -95,12 +79,12 @@ for i in range(15):
         'min_stock': round(min_stock, 2),
         'supplier': f"Supplier {random.choice(['A', 'B', 'C', 'D', 'E'])} Ltd.",
         'status': 'Low Stock' if current_stock < min_stock * 1.5 else 'Available',
-        'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
 
-    sqlite_db.insert('inventory', data)
-    print(f"  Added material: {data['material_name']}")
+    if cloud_first_db.create_material(material_id, data):
+        print(f"  ✓ Added material: {data['material_name']}")
+    else:
+        print(f"  ✗ Failed to add material: {data['material_name']}")
 
 # Add Machines
 print("\nAdding machines...")
@@ -113,7 +97,6 @@ for i, name in enumerate(machine_names):
     next_maintenance = (datetime.now() + timedelta(days=random.randint(30, 60))).strftime('%Y-%m-%d')
 
     data = {
-        'id': machine_id,
         'machine_name': name,
         'machine_type': name.split()[1],
         'model': f"Model-{random.randint(1000, 9999)}",
@@ -121,12 +104,12 @@ for i, name in enumerate(machine_names):
         'last_maintenance': last_maintenance,
         'next_maintenance': next_maintenance,
         'specifications': f"Max Speed: {random.randint(3000, 8000)} RPM, Power: {random.randint(5, 20)} HP",
-        'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
 
-    sqlite_db.insert('machines', data)
-    print(f"  Added machine: {name}")
+    if cloud_first_db.create_machine(machine_id, data):
+        print(f"  ✓ Added machine: {name}")
+    else:
+        print(f"  ✗ Failed to add machine: {name}")
 
 # Add Employees (Operators)
 print("\nAdding employees...")
@@ -136,7 +119,6 @@ for i, name in enumerate(operator_names):
     employee_ids.append(employee_id)
 
     data = {
-        'id': employee_id,
         'name': name,
         'role': 'Operator',
         'contact': f"+91-98765432{20+i}",
@@ -145,12 +127,12 @@ for i, name in enumerate(operator_names):
         'has_login': 0,
         'firebase_uid': '',
         'status': random.choice(['Active', 'Active', 'Active', 'Blocked']),
-        'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
 
-    sqlite_db.insert('employees', data)
-    print(f"  Added employee: {name}")
+    if cloud_first_db.create_employee(employee_id, data):
+        print(f"  ✓ Added employee: {name}")
+    else:
+        print(f"  ✗ Failed to add employee: {name}")
 
 # Add Orders
 print("\nAdding orders...")
@@ -160,15 +142,18 @@ for i in range(20):
     order_ids.append(order_id)
 
     customer_id = random.choice(customer_ids)
-    customer = sqlite_db.fetch_one("SELECT name FROM customers WHERE id = ?", (customer_id,))
+    customers = cloud_first_db.get_all_customers()
+    customer = next((c for c in customers if c['id'] == customer_id), None)
+
+    if not customer:
+        continue
 
     order_date = (datetime.now() - timedelta(days=random.randint(0, 60))).strftime('%Y-%m-%d')
     delivery_date = (datetime.now() + timedelta(days=random.randint(10, 90))).strftime('%Y-%m-%d')
 
     data = {
-        'id': order_id,
         'customer_id': customer_id,
-        'customer_name': customer['name'],
+        'customer_name': customer.get('name'),
         'product_name': random.choice(product_names),
         'quantity': random.randint(10, 500),
         'specifications': f"Material: {random.choice(material_types)}, Tolerance: ±0.01mm, Surface Finish: Ra 3.2",
@@ -176,48 +161,62 @@ for i in range(20):
         'delivery_date': delivery_date,
         'priority': random.choice(['Low', 'Medium', 'High', 'Urgent']),
         'status': random.choice(['Pending', 'In Progress', 'Completed', 'Completed']),
-        'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
 
-    sqlite_db.insert('orders', data)
-    print(f"  Added order: {order_id} - {data['product_name']}")
+    if cloud_first_db.create_order(order_id, data):
+        print(f"  ✓ Added order: {order_id} - {data['product_name']}")
+    else:
+        print(f"  ✗ Failed to add order: {order_id}")
 
 # Add Job Cards
 print("\nAdding job cards...")
 for i in range(15):
     job_id = f"JOB{datetime.now().strftime('%Y%m%d')}{i:03d}"
 
+    if not order_ids:
+        continue
+
     order_id = random.choice(order_ids)
-    order = sqlite_db.fetch_one("SELECT product_name FROM orders WHERE id = ?", (order_id,))
+    orders = cloud_first_db.get_all_orders()
+    order = next((o for o in orders if o['id'] == order_id), None)
+
+    if not order:
+        continue
 
     machine_id = random.choice(machine_ids)
-    machine = sqlite_db.fetch_one("SELECT machine_name FROM machines WHERE id = ?", (machine_id,))
+    machines = cloud_first_db.get_all_machines()
+    machine = next((m for m in machines if m['id'] == machine_id), None)
+
+    if not machine:
+        continue
 
     operator_id = random.choice(employee_ids)
-    operator = sqlite_db.fetch_one("SELECT name FROM employees WHERE id = ?", (operator_id,))
+    employees = cloud_first_db.get_all_employees()
+    operator = next((e for e in employees if e['id'] == operator_id), None)
+
+    if not operator:
+        continue
 
     start_time = (datetime.now() - timedelta(days=random.randint(0, 30), hours=random.randint(0, 8))).strftime('%Y-%m-%d %H:%M:%S')
     end_time = (datetime.now() - timedelta(days=random.randint(0, 25), hours=random.randint(0, 8))).strftime('%Y-%m-%d %H:%M:%S')
 
     data = {
-        'id': job_id,
         'order_id': order_id,
-        'product_name': order['product_name'],
+        'product_name': order.get('product_name'),
         'machine_id': machine_id,
-        'machine_name': machine['machine_name'],
+        'machine_name': machine.get('machine_name'),
         'operator_id': operator_id,
-        'operator_name': operator['name'],
+        'operator_name': operator.get('name'),
         'start_time': start_time,
         'end_time': end_time,
         'status': random.choice(['Pending', 'In Progress', 'Completed', 'Completed']),
         'material_used': f"{random.choice(material_types)} - {random.uniform(10, 50):.2f} kg",
-        'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
 
-    sqlite_db.insert('jobs', data)
-    print(f"  Added job card: {job_id}")
+    if cloud_first_db.create_job(job_id, data):
+        print(f"  ✓ Added job card: {job_id}")
+    else:
+        print(f"  ✗ Failed to add job card: {job_id}")
 
 print("\n" + "=" * 60)
 print("  DUMMY DATA POPULATION COMPLETED!")
@@ -229,5 +228,7 @@ print(f"  Machines: {len(machine_ids)}")
 print(f"  Employees: {len(employee_ids)}")
 print(f"  Orders: {len(order_ids)}")
 print(f"  Job Cards: 15")
-print("\nYou can now login and see the data in the application!")
+print("\nAll data has been uploaded to Firebase!")
+print("You can now login and see the data in the application!")
+
 

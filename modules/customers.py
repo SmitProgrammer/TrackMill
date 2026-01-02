@@ -1,21 +1,21 @@
-"""
-Customer management module
-"""
-
-from PySide6.QtWidgets import QWidget, QTableWidgetItem, QHeaderView, QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QTextEdit
+from datetime import datetime
+from PySide6.QtWidgets import QWidget, QTableWidgetItem, QHeaderView, QDialog, QAbstractItemView
 from PySide6.QtCore import Qt
 from datetime import datetime
 
 from ui_compiled.customers_ui import Ui_CustomersWidget
-from database import sqlite_db
-from utils import show_error, show_success, show_info, confirm_dialog, validate_email, validate_phone, is_empty, session
+from ui_compiled.customer_dialog_ui import Ui_CustomerDialog
+from database import cloud_first_db
+from utils import show_error, show_success, confirm_dialog, validate_email, validate_phone, is_empty, session
 
 
 class CustomerDialog(QDialog):
     def __init__(self, parent=None, customer_data=None):
         super().__init__(parent)
+        self.ui = Ui_CustomerDialog()
+        self.ui.setupUi(self)
+
         self.customer_data = customer_data
-        self.setup_ui()
 
         if customer_data:
             self.setWindowTitle("Edit Customer")
@@ -23,62 +23,24 @@ class CustomerDialog(QDialog):
         else:
             self.setWindowTitle("Add New Customer")
 
-    def setup_ui(self):
-        self.setFixedSize(500, 400)
-        layout = QVBoxLayout()
-
-        # Name
-        layout.addWidget(QLabel("Customer Name:"))
-        self.txt_name = QLineEdit()
-        layout.addWidget(self.txt_name)
-
-        # Contact
-        layout.addWidget(QLabel("Contact Number:"))
-        self.txt_contact = QLineEdit()
-        layout.addWidget(self.txt_contact)
-
-        # Email
-        layout.addWidget(QLabel("Email:"))
-        self.txt_email = QLineEdit()
-        layout.addWidget(self.txt_email)
-
-        # Company
-        layout.addWidget(QLabel("Company:"))
-        self.txt_company = QLineEdit()
-        layout.addWidget(self.txt_company)
-
-        # Address
-        layout.addWidget(QLabel("Address:"))
-        self.txt_address = QTextEdit()
-        self.txt_address.setMaximumHeight(80)
-        layout.addWidget(self.txt_address)
-
-        # Buttons
-        btn_layout = QHBoxLayout()
-        btn_save = QPushButton("Save")
-        btn_cancel = QPushButton("Cancel")
-        btn_save.clicked.connect(self.accept)
-        btn_cancel.clicked.connect(self.reject)
-        btn_layout.addWidget(btn_save)
-        btn_layout.addWidget(btn_cancel)
-        layout.addLayout(btn_layout)
-
-        self.setLayout(layout)
+        self.ui.btnSave.clicked.connect(self.accept)
+        self.ui.btnCancel.clicked.connect(self.reject)
 
     def load_data(self):
-        self.txt_name.setText(self.customer_data.get('name', ''))
-        self.txt_contact.setText(self.customer_data.get('contact', ''))
-        self.txt_email.setText(self.customer_data.get('email', ''))
-        self.txt_company.setText(self.customer_data.get('company', ''))
-        self.txt_address.setText(self.customer_data.get('address', ''))
+        if self.customer_data:
+            self.ui.txtName.setText(self.customer_data.get('name', ''))
+            self.ui.txtContact.setText(self.customer_data.get('contact', ''))
+            self.ui.txtEmail.setText(self.customer_data.get('email', ''))
+            self.ui.txtCompany.setText(self.customer_data.get('company', ''))
+            self.ui.txtAddress.setText(self.customer_data.get('address', ''))
 
     def get_data(self):
         return {
-            'name': self.txt_name.text().strip(),
-            'contact': self.txt_contact.text().strip(),
-            'email': self.txt_email.text().strip(),
-            'company': self.txt_company.text().strip(),
-            'address': self.txt_address.toPlainText().strip()
+            'name': self.ui.txtName.text().strip(),
+            'contact': self.ui.txtContact.text().strip(),
+            'email': self.ui.txtEmail.text().strip(),
+            'company': self.ui.txtCompany.text().strip(),
+            'address': self.ui.txtAddress.toPlainText().strip()
         }
 
     def validate(self):
@@ -110,6 +72,11 @@ class CustomersWidget(QWidget):
 
         self.setup_table()
         self.setup_connections()
+
+        # Set initial button states
+        self.ui.btnEditCustomer.setEnabled(False)
+        self.ui.btnDeleteCustomer.setEnabled(False)
+
         self.load_customers()
 
     def setup_table(self):
@@ -123,6 +90,9 @@ class CustomersWidget(QWidget):
         header = self.ui.tableCustomers.horizontalHeader()
         header.setSectionResizeMode(5, QHeaderView.Stretch)
 
+        self.ui.tableCustomers.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.ui.tableCustomers.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+
     def setup_connections(self):
         self.ui.btnAddCustomer.clicked.connect(self.add_customer)
         self.ui.btnEditCustomer.clicked.connect(self.edit_customer)
@@ -132,25 +102,36 @@ class CustomersWidget(QWidget):
         self.ui.tableCustomers.itemSelectionChanged.connect(self.on_selection_changed)
 
     def on_selection_changed(self):
-        selected = len(self.ui.tableCustomers.selectedItems()) > 0
-        self.ui.btnEditCustomer.setEnabled(selected)
-        self.ui.btnDeleteCustomer.setEnabled(selected)
-
-        if selected:
-            row = self.ui.tableCustomers.currentRow()
+        selected_items = self.ui.tableCustomers.selectedItems()
+        if selected_items:
+            row = selected_items[0].row()
             self.current_customer_id = self.ui.tableCustomers.item(row, 0).text()
+            self.ui.btnEditCustomer.setEnabled(True)
+            self.ui.btnDeleteCustomer.setEnabled(True)
         else:
             self.current_customer_id = None
+            self.ui.btnEditCustomer.setEnabled(False)
+            self.ui.btnDeleteCustomer.setEnabled(False)
 
     def load_customers(self):
+        print("\n[CUSTOMERS] ========== LOADING CUSTOMERS (CLOUD-FIRST) ==========")
         self.ui.tableCustomers.setRowCount(0)
 
-        customers = sqlite_db.fetch_all("SELECT * FROM customers ORDER BY created_at DESC")
+        # Cloud-first approach: always fetch from cloud, fallback to SQLite
+        print("[CUSTOMERS] Fetching from Firebase (primary)...")
+        customers = cloud_first_db.get_all_customers()
 
+        if customers:
+            print(f"[CUSTOMERS] Successfully loaded {len(customers)} customers")
+        else:
+            print("[CUSTOMERS] No customers found")
+
+        # Display in table
         for customer in customers:
             self.add_customer_to_table(customer)
 
         self.ui.lblTotalCustomers.setText(f"Total: {len(customers)} customers")
+        print("[CUSTOMERS] ========== LOAD COMPLETED ==========\n")
 
     def add_customer_to_table(self, customer):
         row = self.ui.tableCustomers.rowCount()
@@ -186,23 +167,21 @@ class CustomersWidget(QWidget):
 
             data = dialog.get_data()
             customer_id = f"CUST{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            data['id'] = customer_id
 
-            if sqlite_db.insert('customers', data):
-                show_success(self, "Success", "Customer added successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Add Customer", "Customers", f"Added {data['name']}")
-
-                self.load_customers()
+            # Cloud-first: write to Firebase first
+            if cloud_first_db.create_customer(customer_id, data):
+                show_success(self, "Success", "Customer created successfully")
             else:
-                show_error(self, "Error", "Failed to add customer")
+                show_error(self, "Error", "Failed to create customer")
+
+            self.load_customers()
 
     def edit_customer(self):
         if not self.current_customer_id:
             return
 
-        customer = sqlite_db.fetch_one("SELECT * FROM customers WHERE id = ?", (self.current_customer_id,))
+        # Get fresh data from cloud
+        customer = cloud_first_db.get_customer(self.current_customer_id)
 
         if not customer:
             show_error(self, "Error", "Customer not found")
@@ -216,38 +195,34 @@ class CustomersWidget(QWidget):
 
             data = dialog.get_data()
 
-            if sqlite_db.update('customers', data, "id = ?", (self.current_customer_id,)):
+            # Cloud-first: update Firebase first
+            if cloud_first_db.update_customer(self.current_customer_id, data):
                 show_success(self, "Success", "Customer updated successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Edit Customer", "Customers", f"Updated {data['name']}")
-
-                self.load_customers()
             else:
                 show_error(self, "Error", "Failed to update customer")
+
+            self.load_customers()
 
     def delete_customer(self):
         if not self.current_customer_id:
             return
 
-        customer = sqlite_db.fetch_one("SELECT name FROM customers WHERE id = ?", (self.current_customer_id,))
+        # Get fresh data from cloud
+        customer = cloud_first_db.get_customer(self.current_customer_id)
 
         if not customer:
             show_error(self, "Error", "Customer not found")
             return
 
         if confirm_dialog(self, "Confirm Delete", f"Are you sure you want to delete customer '{customer['name']}'?"):
-            if sqlite_db.delete('customers', "id = ?", (self.current_customer_id,)):
+            # Cloud-first: delete from Firebase
+            if cloud_first_db.delete_customer(self.current_customer_id):
                 show_success(self, "Success", "Customer deleted successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Delete Customer", "Customers", f"Deleted {customer['name']}")
-
-                self.load_customers()
             else:
                 show_error(self, "Error", "Failed to delete customer")
+
+            self.load_customers()
 
     def showEvent(self, event):
         super().showEvent(event)
         self.load_customers()
-

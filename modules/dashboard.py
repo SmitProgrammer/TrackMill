@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QWidget, QListWidgetItem
 from PySide6.QtCore import QTimer, Qt
 
 from ui_compiled.dashboard_ui import Ui_DashboardWidget
-from database import sqlite_db
+from database import cloud_first_db
 from utils import format_datetime
 
 
@@ -34,19 +34,22 @@ class DashboardWidget(QWidget):
         """Load and display summary statistics"""
         try:
             # Count active orders
-            orders_count = sqlite_db.count('orders', "status != ?", ('Completed',))
+            all_orders = cloud_first_db.get_all_orders()
+            orders_count = len([o for o in all_orders if o.get('status') != 'Completed'])
             self.ui.lblOrdersValue.setText(str(orders_count))
 
             # Count inventory items
-            inventory_count = sqlite_db.count('inventory')
+            inventory_count = len(cloud_first_db.get_all_inventory())
             self.ui.lblInventoryValue.setText(str(inventory_count))
 
             # Count active employees
-            employees_count = sqlite_db.count('employees', "status = ?", ('Active',))
+            all_employees = cloud_first_db.get_all_employees()
+            employees_count = len([e for e in all_employees if e.get('status') == 'Active'])
             self.ui.lblEmployeesValue.setText(str(employees_count))
 
             # Count available machines
-            machines_count = sqlite_db.count('machines', "status = ?", ('Available',))
+            all_machines = cloud_first_db.get_all_machines()
+            machines_count = len([m for m in all_machines if m.get('status') == 'Available'])
             self.ui.lblMachinesValue.setText(str(machines_count))
 
         except Exception as e:
@@ -58,28 +61,32 @@ class DashboardWidget(QWidget):
             # Clear existing items
             self.ui.listRecentActivity.clear()
 
-            # Get recent activities from database
-            activities = sqlite_db.get_recent_activities(limit=10)
+            # Show placeholder - activity logging not supported in cloud-only mode
+            item = QListWidgetItem("📊 Dashboard Overview (Cloud-First)")
+            item.setForeground(Qt.darkGreen)
+            self.ui.listRecentActivity.addItem(item)
 
-            if not activities:
-                # Show placeholder if no activity
-                item = QListWidgetItem("No recent activity")
-                item.setForeground(Qt.gray)
+            # Add statistics
+            try:
+                all_orders = cloud_first_db.get_all_orders()
+                item = QListWidgetItem(f"📦 Total Orders: {len(all_orders)}")
                 self.ui.listRecentActivity.addItem(item)
-            else:
-                # Add activities to list
-                for activity in activities:
-                    timestamp = format_datetime(activity['timestamp'],
-                                                "%Y-%m-%d %H:%M:%S",
-                                                "%d-%m-%Y %I:%M %p")
 
-                    text = f"{activity['action']} - {activity['module']}"
-                    if activity['details']:
-                        text += f" ({activity['details']})"
-                    text += f"\n{timestamp} by {activity['user_email']}"
+                all_inventory = cloud_first_db.get_all_inventory()
+                item = QListWidgetItem(f"📋 Total Inventory Items: {len(all_inventory)}")
+                self.ui.listRecentActivity.addItem(item)
 
-                    item = QListWidgetItem(text)
-                    self.ui.listRecentActivity.addItem(item)
+                all_employees = cloud_first_db.get_all_employees()
+                item = QListWidgetItem(f"👥 Total Employees: {len(all_employees)}")
+                self.ui.listRecentActivity.addItem(item)
+
+                all_machines = cloud_first_db.get_all_machines()
+                item = QListWidgetItem(f"⚙️ Total Machines: {len(all_machines)}")
+                self.ui.listRecentActivity.addItem(item)
+
+            except Exception as e:
+                item = QListWidgetItem(f"⚠️ Error loading statistics: {str(e)}")
+                self.ui.listRecentActivity.addItem(item)
 
         except Exception as e:
             print(f"❌ Error loading recent activity: {e}")

@@ -8,7 +8,6 @@ from PySide6.QtGui import QIcon
 
 from ui_compiled.main_window_ui import Ui_MainWindow
 from utils import show_info, confirm_dialog, session
-from database import sqlite_db
 
 from modules.dashboard import DashboardWidget
 from modules.customers import CustomersWidget
@@ -50,9 +49,6 @@ class MainWindow(QMainWindow):
         # Load dashboard by default
         self.load_module('dashboard')
 
-        # Log activity
-        user_email = session.get_user_email()
-        sqlite_db.log_activity(user_email, "Open Application", "Main Window", "User opened main window")
 
     def center_window(self):
         """Center window on screen"""
@@ -190,10 +186,6 @@ class MainWindow(QMainWindow):
         """Handle logout button click"""
         # Confirm logout
         if confirm_dialog(self, "Logout", "Are you sure you want to logout?"):
-            # Log activity
-            user_email = session.get_user_email()
-            sqlite_db.log_activity(user_email, "Logout", "Authentication", "User logged out")
-
             # Clear session
             session.logout()
 
@@ -209,10 +201,6 @@ class MainWindow(QMainWindow):
         """Handle window close event"""
         # Confirm exit
         if confirm_dialog(self, "Exit Application", "Are you sure you want to exit?"):
-            # Log activity
-            user_email = session.get_user_email()
-            if user_email:
-                sqlite_db.log_activity(user_email, "Exit Application", "Main Window", "User closed application")
 
             # Clear session
             session.logout()

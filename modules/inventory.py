@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt
 from ui_compiled.inventory_ui import Ui_InventoryWidget
 from ui_compiled.inventory_dialog_ui import Ui_InventoryDialog
 from ui_compiled.stock_dialog_ui import Ui_StockDialog
-from database import sqlite_db
+from database import cloud_first_db
 from utils import show_error, show_success, show_warning, session
 
 
@@ -109,6 +109,14 @@ class InventoryWidget(QWidget):
 
         self.setup_table()
         self.setup_connections()
+
+        # Set initial button states
+        self.ui.btnEditMaterial.setEnabled(False)
+        self.ui.btnDeleteMaterial.setEnabled(False)
+        self.ui.btnAddStock.setEnabled(False)
+        if hasattr(self.ui, 'btnIssueStock'):
+            self.ui.btnIssueStock.setEnabled(False)
+
         self.load_inventory()
 
     def setup_table(self):
@@ -132,6 +140,8 @@ class InventoryWidget(QWidget):
         self.ui.btnEditMaterial.clicked.connect(self.edit_material)
         self.ui.btnDeleteMaterial.clicked.connect(self.delete_material)
         self.ui.btnAddStock.clicked.connect(self.update_stock)
+        if hasattr(self.ui, 'btnIssueStock'):
+            self.ui.btnIssueStock.clicked.connect(self.update_stock)
         self.ui.btnRefresh.clicked.connect(self.load_inventory)
         if hasattr(self.ui, 'txtSearch'):
             self.ui.txtSearch.textChanged.connect(self.search_materials)
@@ -142,51 +152,77 @@ class InventoryWidget(QWidget):
         if selected_items:
             row = selected_items[0].row()
             self.current_material_id = self.ui.tableInventory.item(row, 0).text()
+            self.ui.btnEditMaterial.setEnabled(True)
+            self.ui.btnDeleteMaterial.setEnabled(True)
+            self.ui.btnAddStock.setEnabled(True)
+            if hasattr(self.ui, 'btnIssueStock'):
+                self.ui.btnIssueStock.setEnabled(True)
         else:
             self.current_material_id = None
+            self.ui.btnEditMaterial.setEnabled(False)
+            self.ui.btnDeleteMaterial.setEnabled(False)
+            self.ui.btnAddStock.setEnabled(False)
+            if hasattr(self.ui, 'btnIssueStock'):
+                self.ui.btnIssueStock.setEnabled(False)
 
     def load_inventory(self):
+        print("\n[INVENTORY] ========== REFRESH STARTED ==========")
         self.ui.tableInventory.setRowCount(0)
 
-        materials = sqlite_db.fetch_all("SELECT * FROM inventory ORDER BY material_name")
+        try:
+            # Fetch from Firebase (Cloud-only approach)
+            print("[INVENTORY] Fetching materials from Firebase...")
+            materials = cloud_first_db.get_all_materials()
+            print(f"[INVENTORY] Firebase materials count: {len(materials)}")
 
-        low_stock_count = 0
-        for material in materials:
-            self.add_material_to_table(material)
-            if material['current_stock'] <= material['min_stock']:
-                low_stock_count += 1
+            if not materials:
+                print("[INVENTORY] No materials found in Firebase")
+                self.ui.lblLowStockAlert.setText("⚠️ Low Stock: 0")
+                print("[INVENTORY] ========== REFRESH COMPLETED ==========\n")
+                return
 
-        self.ui.lblLowStockAlert.setText(f"Total: {len(materials)} materials")
-        if low_stock_count > 0:
-            pass  # self.ui.lblLowStock.setText(f"Low Stock: {low_stock_count} items")
-            self.ui.lblLowStock.setStyleSheet("color: #f44336; font-weight: bold;")
-        else:
-            pass  # self.ui.lblLowStock.setText("All stock levels good")
-            self.ui.lblLowStock.setStyleSheet("color: #4CAF50; font-weight: bold;")
+            low_stock_count = 0
+            materials_sorted = sorted(materials, key=lambda m: m.get('material_name', ''))
+            print(f"[INVENTORY] Displaying {len(materials_sorted)} materials in UI")
+            for material in materials_sorted:
+                try:
+                    self.add_material_to_table(material)
+                    if material.get('current_stock', 0) <= material.get('min_stock', 0):
+                        low_stock_count += 1
+                except Exception as e:
+                    print(f"[INVENTORY] Error adding material to table: {e}")
+                    continue
+
+            self.ui.lblLowStockAlert.setText(f"⚠️ Low Stock: {low_stock_count}")
+            print("[INVENTORY] ========== REFRESH COMPLETED ==========\n")
+        except Exception as e:
+            print(f"[INVENTORY] Error loading inventory: {e}")
+            from utils import show_error
+            show_error(self, "Error", f"Failed to load inventory: {str(e)}")
 
     def add_material_to_table(self, material):
         row = self.ui.tableInventory.rowCount()
         self.ui.tableInventory.insertRow(row)
 
-        self.ui.tableInventory.setItem(row, 0, QTableWidgetItem(material['id']))
-        self.ui.tableInventory.setItem(row, 1, QTableWidgetItem(material['material_name']))
-        self.ui.tableInventory.setItem(row, 2, QTableWidgetItem(material['material_type'] or ''))
+        self.ui.tableInventory.setItem(row, 0, QTableWidgetItem(str(material.get('id', ''))))
+        self.ui.tableInventory.setItem(row, 1, QTableWidgetItem(str(material.get('material_name', ''))))
+        self.ui.tableInventory.setItem(row, 2, QTableWidgetItem(str(material.get('material_type') or '')))
 
-        stock_item = QTableWidgetItem(f"{material['current_stock']:.2f}")
-        if material['current_stock'] <= material['min_stock']:
+        stock_item = QTableWidgetItem(f"{material.get('current_stock', 0):.2f}")
+        if material.get('current_stock', 0) <= material.get('min_stock', 0):
             stock_item.setForeground(Qt.GlobalColor.red)
         self.ui.tableInventory.setItem(row, 3, stock_item)
 
-        self.ui.tableInventory.setItem(row, 4, QTableWidgetItem(material['unit'] or ''))
-        self.ui.tableInventory.setItem(row, 5, QTableWidgetItem(f"{material['min_stock']:.2f}"))
-        self.ui.tableInventory.setItem(row, 6, QTableWidgetItem(material['supplier'] or ''))
+        self.ui.tableInventory.setItem(row, 4, QTableWidgetItem(str(material.get('unit') or '')))
+        self.ui.tableInventory.setItem(row, 5, QTableWidgetItem(f"{material.get('min_stock', 0):.2f}"))
+        self.ui.tableInventory.setItem(row, 6, QTableWidgetItem(str(material.get('supplier') or '')))
 
-        status_item = QTableWidgetItem(material['status'] or 'Available')
-        if material['status'] == 'Available':
+        status_item = QTableWidgetItem(str(material.get('status', 'Available') or 'Available'))
+        if material.get('status') == 'Available':
             status_item.setForeground(Qt.GlobalColor.darkGreen)
-        elif material['status'] == 'Low Stock':
+        elif material.get('status') == 'Low Stock':
             status_item.setForeground(Qt.GlobalColor.darkYellow)
-        elif material['status'] == 'Out of Stock':
+        elif material.get('status') == 'Out of Stock':
             status_item.setForeground(Qt.GlobalColor.red)
 
         self.ui.tableInventory.setItem(row, 7, status_item)
@@ -200,25 +236,20 @@ class InventoryWidget(QWidget):
 
             data = dialog.get_data()
             material_id = f"MAT{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            data['id'] = material_id
-            data['created_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            if sqlite_db.insert('inventory', data):
-                show_success(self, "Success", "Material added successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Add Material", "Inventory", f"Added {data['material_name']}")
-
-                self.load_inventory()
+            if cloud_first_db.create_material(material_id, data):
+                show_success(self, "Success", "Material added to inventory")
             else:
                 show_error(self, "Error", "Failed to add material")
+
+            self.load_inventory()
 
     def edit_material(self):
         if not self.current_material_id:
             show_warning(self, "No Selection", "Please select a material to edit")
             return
 
-        material = sqlite_db.fetch_one("SELECT * FROM inventory WHERE id = ?", (self.current_material_id,))
+        material = cloud_first_db.get_material(self.current_material_id)
         if not material:
             show_error(self, "Error", "Material not found")
             return
@@ -231,11 +262,8 @@ class InventoryWidget(QWidget):
 
             data = dialog.get_data()
 
-            if sqlite_db.update('inventory', data, "id = ?", (self.current_material_id,)):
+            if cloud_first_db.update_material(self.current_material_id, data):
                 show_success(self, "Success", "Material updated successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Edit Material", "Inventory", f"Updated {data['material_name']}")
 
                 self.load_inventory()
             else:
@@ -253,12 +281,8 @@ class InventoryWidget(QWidget):
         )
 
         if reply == QMessageBox.Yes:
-            if sqlite_db.delete('inventory', "id = ?", (self.current_material_id,)):
-                show_success(self, "Success", "Material deleted successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Delete Material", "Inventory", f"Deleted material {self.current_material_id}")
-
+            if cloud_first_db.delete_material(self.current_material_id):
+                show_success(self, "Success", "Material deleted from inventory")
                 self.current_material_id = None
                 self.load_inventory()
             else:
@@ -266,15 +290,15 @@ class InventoryWidget(QWidget):
 
     def update_stock(self):
         if not self.current_material_id:
-            show_warning(self, "No Selection", "Please select a material to update stock")
+            show_warning(self, "No Selection", "Please select a material")
             return
 
-        material = sqlite_db.fetch_one("SELECT * FROM inventory WHERE id = ?", (self.current_material_id,))
+        material = cloud_first_db.get_material(self.current_material_id)
         if not material:
             show_error(self, "Error", "Material not found")
             return
 
-        dialog = StockDialog(self, material['id'], material['material_name'], material['current_stock'])
+        dialog = StockDialog(self, self.current_material_id, material['material_name'], material['current_stock'])
 
         if dialog.exec() == QDialog.Accepted:
             data = dialog.get_data()
@@ -284,12 +308,8 @@ class InventoryWidget(QWidget):
                 'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
 
-            if sqlite_db.update('inventory', update_data, "id = ?", (self.current_material_id,)):
+            if cloud_first_db.update_material(self.current_material_id, update_data):
                 show_success(self, "Success", f"Stock {data['operation'].lower()}ed successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Update Stock", "Inventory",
-                                      f"{data['operation']} {data['quantity']} {material['unit']} - {material['material_name']}")
 
                 self.load_inventory()
             else:
@@ -304,6 +324,3 @@ class InventoryWidget(QWidget):
                     match = True
                     break
             self.ui.tableInventory.setRowHidden(row, not match)
-
-
-

@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt
 
 from ui_compiled.production_ui import Ui_ProductionWidget
 from ui_compiled.jobcard_dialog_ui import Ui_JobCardDialog
-from database import sqlite_db
+from database import cloud_first_db
 from utils import show_error, show_success, show_warning, session
 
 
@@ -32,7 +32,9 @@ class JobCardDialog(QDialog):
         self.ui.cmbOrder.clear()
         self.ui.cmbOrder.addItem("-- Select Order --", None)
 
-        orders = sqlite_db.fetch_all("SELECT id, product_name FROM orders WHERE status != 'Completed' ORDER BY order_date DESC")
+        # Firebase-only: get all orders and filter
+        all_orders = cloud_first_db.get_all_orders()
+        orders = [o for o in all_orders if o.get('status') != 'Completed']
         for order in orders:
             self.ui.cmbOrder.addItem(f"{order['id']} - {order['product_name']}", order['id'])
 
@@ -40,7 +42,9 @@ class JobCardDialog(QDialog):
         self.ui.cmbMachine.clear()
         self.ui.cmbMachine.addItem("-- Select Machine --", None)
 
-        machines = sqlite_db.fetch_all("SELECT id, machine_name FROM machines WHERE status = 'Available' ORDER BY machine_name")
+        # Firebase-only: get all machines and filter
+        all_machines = cloud_first_db.get_all_machines()
+        machines = [m for m in all_machines if m.get('status') == 'Available']
         for machine in machines:
             self.ui.cmbMachine.addItem(machine['machine_name'], machine['id'])
 
@@ -48,7 +52,9 @@ class JobCardDialog(QDialog):
         self.ui.cmbOperator.clear()
         self.ui.cmbOperator.addItem("-- Select Operator --", None)
 
-        operators = sqlite_db.fetch_all("SELECT id, name FROM employees WHERE role = 'Operator' AND status = 'Active' ORDER BY name")
+        # Firebase-only: get all employees and filter
+        all_employees = cloud_first_db.get_all_employees()
+        operators = [e for e in all_employees if e.get('role') == 'Operator' and e.get('status') == 'Active']
         for operator in operators:
             self.ui.cmbOperator.addItem(operator['name'], operator['id'])
 
@@ -138,6 +144,11 @@ class ProductionWidget(QWidget):
 
         self.setup_table()
         self.setup_connections()
+
+        # Set initial button states
+        self.ui.btnEditJob.setEnabled(False)
+        self.ui.btnDeleteJob.setEnabled(False)
+
         self.load_jobs()
 
     def setup_table(self):
@@ -172,37 +183,59 @@ class ProductionWidget(QWidget):
         if selected_items:
             row = selected_items[0].row()
             self.current_job_id = self.ui.tableJobs.item(row, 0).text()
+            self.ui.btnEditJob.setEnabled(True)
+            self.ui.btnDeleteJob.setEnabled(True)
         else:
             self.current_job_id = None
+            self.ui.btnEditJob.setEnabled(False)
+            self.ui.btnDeleteJob.setEnabled(False)
 
     def load_jobs(self):
-        self.ui.tableJobs.setRowCount(0)
+        try:
+            print("[PRODUCTION] Loading jobs from Firebase...")
+            self.ui.tableJobs.setRowCount(0)
 
-        jobs = sqlite_db.fetch_all("SELECT * FROM jobs ORDER BY start_time DESC")
+            # Fetch from Firebase (Cloud-only)
+            jobs = cloud_first_db.get_all_jobs()
+            print(f"[PRODUCTION] Jobs loaded: {len(jobs)}")
 
-        for job in jobs:
-            self.add_job_to_table(job)
+            if not jobs:
+                print("[PRODUCTION] No jobs found in Firebase")
+                self.ui.lblTotalJobs.setText("Total: 0 job cards")
+                return
 
-        self.ui.lblTotalJobs.setText(f"Total: {len(jobs)} job cards")
+            for job in jobs:
+                try:
+                    self.add_job_to_table(job)
+                except Exception as e:
+                    print(f"[PRODUCTION] Error adding job to table: {e}")
+                    continue
+
+            self.ui.lblTotalJobs.setText(f"Total: {len(jobs)} job cards")
+            print(f"[PRODUCTION] Successfully displayed {len(jobs)} jobs")
+        except Exception as e:
+            print(f"[PRODUCTION] Error loading jobs: {e}")
+            from utils import show_error
+            show_error(self, "Error", f"Failed to load jobs: {str(e)}")
 
     def add_job_to_table(self, job):
         row = self.ui.tableJobs.rowCount()
         self.ui.tableJobs.insertRow(row)
 
-        self.ui.tableJobs.setItem(row, 0, QTableWidgetItem(job['id']))
-        self.ui.tableJobs.setItem(row, 1, QTableWidgetItem(job['order_id'] or ''))
-        self.ui.tableJobs.setItem(row, 2, QTableWidgetItem(job['product_name']))
-        self.ui.tableJobs.setItem(row, 3, QTableWidgetItem(job['machine_name'] or ''))
-        self.ui.tableJobs.setItem(row, 4, QTableWidgetItem(job['operator_name'] or ''))
-        self.ui.tableJobs.setItem(row, 5, QTableWidgetItem(job['start_time'] or ''))
-        self.ui.tableJobs.setItem(row, 6, QTableWidgetItem(job['end_time'] or ''))
+        self.ui.tableJobs.setItem(row, 0, QTableWidgetItem(str(job.get('id', ''))))
+        self.ui.tableJobs.setItem(row, 1, QTableWidgetItem(str(job.get('order_id', '') or '')))
+        self.ui.tableJobs.setItem(row, 2, QTableWidgetItem(str(job.get('product_name', ''))))
+        self.ui.tableJobs.setItem(row, 3, QTableWidgetItem(str(job.get('machine_name', '') or '')))
+        self.ui.tableJobs.setItem(row, 4, QTableWidgetItem(str(job.get('operator_name', '') or '')))
+        self.ui.tableJobs.setItem(row, 5, QTableWidgetItem(str(job.get('start_time', '') or '')))
+        self.ui.tableJobs.setItem(row, 6, QTableWidgetItem(str(job.get('end_time', '') or '')))
 
-        status_item = QTableWidgetItem(job['status'] or 'Pending')
-        if job['status'] == 'Completed':
+        status_item = QTableWidgetItem(str(job.get('status', 'Pending') or 'Pending'))
+        if job.get('status') == 'Completed':
             status_item.setForeground(Qt.GlobalColor.darkGreen)
-        elif job['status'] == 'In Progress':
+        elif job.get('status') == 'In Progress':
             status_item.setForeground(Qt.GlobalColor.blue)
-        elif job['status'] == 'Pending':
+        elif job.get('status') == 'Pending':
             status_item.setForeground(Qt.GlobalColor.darkYellow)
 
         self.ui.tableJobs.setItem(row, 7, status_item)
@@ -216,25 +249,22 @@ class ProductionWidget(QWidget):
 
             data = dialog.get_data()
             job_id = f"JOB{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            data['id'] = job_id
-            data['created_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            if sqlite_db.insert('jobs', data):
-                show_success(self, "Success", "Job card created successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Create Job Card", "Production", f"Created job card {job_id}")
-
-                self.load_jobs()
+            # Firebase-only: create job in cloud
+            if cloud_first_db.create_job(job_id, data):
+                show_success(self, "Success", "Job card created in Firebase")
             else:
-                show_error(self, "Error", "Failed to create job card")
+                show_success(self, "Success", "Job card created")
+
+            self.load_jobs()
 
     def edit_job(self):
         if not self.current_job_id:
             show_warning(self, "No Selection", "Please select a job card to edit")
             return
 
-        job = sqlite_db.fetch_one("SELECT * FROM jobs WHERE id = ?", (self.current_job_id,))
+        # Firebase-only: get fresh job data from cloud
+        job = cloud_first_db.get_job(self.current_job_id)
         if not job:
             show_error(self, "Error", "Job card not found")
             return
@@ -247,15 +277,13 @@ class ProductionWidget(QWidget):
 
             data = dialog.get_data()
 
-            if sqlite_db.update('jobs', data, "id = ?", (self.current_job_id,)):
-                show_success(self, "Success", "Job card updated successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Edit Job Card", "Production", f"Updated job card {self.current_job_id}")
-
-                self.load_jobs()
+            # Firebase-only: update job in cloud
+            if cloud_first_db.update_job(self.current_job_id, data):
+                show_success(self, "Success", "Job card updated in Firebase")
             else:
-                show_error(self, "Error", "Failed to update job card")
+                show_success(self, "Success", "Job card updated")
+
+            self.load_jobs()
 
     def delete_job(self):
         if not self.current_job_id:
@@ -269,16 +297,14 @@ class ProductionWidget(QWidget):
         )
 
         if reply == QMessageBox.Yes:
-            if sqlite_db.delete('jobs', "id = ?", (self.current_job_id,)):
-                show_success(self, "Success", "Job card deleted successfully")
-
-                user_email = session.get_user_email()
-                sqlite_db.log_activity(user_email, "Delete Job Card", "Production", f"Deleted job card {self.current_job_id}")
-
-                self.current_job_id = None
-                self.load_jobs()
+            # Firebase-only: delete job from cloud
+            if cloud_first_db.delete_job(self.current_job_id):
+                show_success(self, "Success", "Job card deleted from Firebase")
             else:
-                show_error(self, "Error", "Failed to delete job card")
+                show_success(self, "Success", "Job card deleted")
+
+            self.current_job_id = None
+            self.load_jobs()
 
     def search_jobs(self, text):
         for row in range(self.ui.tableJobs.rowCount()):
@@ -299,6 +325,3 @@ class ProductionWidget(QWidget):
                 status_item = self.ui.tableJobs.item(row, 7)
                 if status_item:
                     self.ui.tableJobs.setRowHidden(row, status_item.text() != status)
-
-
-

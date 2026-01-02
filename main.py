@@ -1,32 +1,37 @@
 """
 CNC ERP System - Main Entry Point
+Firebase-Only Architecture (No SQLite)
 """
 
 import sys
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt
 
-from database import firebase_db, sqlite_db
+from database import firebase_db
 from modules.auth import LoginWindow
 
 
 def initialize_app():
-    """Initialize application and databases"""
+    """Initialize Firebase (Firebase-Only Architecture)"""
     print("=" * 60)
     print("  CNC ERP SYSTEM - INITIALIZING")
     print("=" * 60)
 
     if firebase_db.firebase is None:
-        print("WARNING: Firebase not initialized. Please check firebase_credentials.json")
-        print("   The app will still work with SQLite for local data.")
+        print("ERROR: Firebase not initialized!")
+        print("Please check firebase_credentials.json in config folder")
+        print("The app REQUIRES Firebase to function.")
+        print("=" * 60)
+        return False
     else:
         print("SUCCESS: Firebase initialized successfully")
-
-    print("SUCCESS: SQLite database ready")
+        print("Architecture: Firebase-Only (Pure Cloud)")
+        print("All data stored and retrieved from Firebase")
 
     print("=" * 60)
     print("  READY TO LAUNCH")
     print("=" * 60)
+    return True
 
 
 def main():
@@ -38,9 +43,10 @@ def main():
     app.setApplicationName("CNC ERP System")
     app.setApplicationVersion("1.0.0")
 
-
-    # Initialize app and databases
-    initialize_app()
+    # Initialize Firebase
+    if not initialize_app():
+        print("Failed to initialize Firebase. Exiting.")
+        sys.exit(1)
 
     # Create and show login window
     login_window = LoginWindow()
@@ -52,7 +58,6 @@ def main():
     print("\n" + "=" * 60)
     print("  APPLICATION CLOSING")
     print("=" * 60)
-    sqlite_db.close()
     print("Thank you for using CNC ERP System!")
     print("=" * 60)
 

@@ -1,0 +1,55 @@
+{
+  "rules": {
+    "customers": {
+      ".indexOn": ["created_at", "updated_at"],
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "orders": {
+      ".indexOn": ["customer_id", "created_at"],
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "jobs": {
+      ".indexOn": ["operator_id", "order_id", "created_at"],
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "machines": {
+      ".indexOn": ["created_at"],
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "inventory": {
+      ".indexOn": ["material_name", "created_at"],
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "employees": {
+      ".indexOn": ["role", "created_at"],
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "materials": {
+      ".indexOn": ["created_at"],
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "activity_logs": {
+      ".indexOn": ["timestamp", "user_id", "user_email"],
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "users": {
+      ".indexOn": ["email"],
+      ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+      ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".validate": "newData.hasChildren(['name', 'email'])"
+      }
+    }
+  }
+}
+
